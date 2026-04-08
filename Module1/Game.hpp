@@ -7,6 +7,10 @@
 #include "RenderableMesh.hpp"
 #include "ForwardRenderer.hpp"
 #include "ShapeRenderer.hpp"
+#include "SystemMovement.hpp"
+#include "SystemRender.hpp"
+#include "SystemPlayerController.hpp"
+#include "SystemNPCController.hpp"
 
 /// @brief A Game may hold, update and render 3D geometry and GUI elements
 class Game : public eeng::GameBase
@@ -40,6 +44,18 @@ public:
 private:
     /// @brief For rendering of GUI elements
     void renderUI();
+
+	// System for updating entity positions based on their velocity components
+	MovementSystem movementSystem;
+
+	// System for rendering entities with mesh components
+	RenderSystem renderSystem;
+
+	// System for updating NPC-controlled entities based on simple AI logic
+	NPCControllerSystem npcControllerSystem;
+
+	// System for updating player-controlled entities based on input
+	PlayerControllerSystem playerControllerSystem;
 
     // Renderer for rendering imported animated or non-animated models
     eeng::ForwardRendererPtr forwardRenderer;

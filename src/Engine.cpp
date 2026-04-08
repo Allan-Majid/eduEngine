@@ -71,7 +71,7 @@ namespace eeng {
             glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
 #endif
             eeng::Log("Anisotropic samples %i (requested), %i (max))", EENG_ANISO_SAMPLES, (int)maxAniso);
-        }
+        } 
 #endif
 
         input = std::make_shared<eeng::InputManager>();
