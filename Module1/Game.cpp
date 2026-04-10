@@ -90,7 +90,7 @@ bool Game::init()
 		{ 0.01f, 0.01f, 0.01f });
 
 	//Horse entity
-	auto horseEntity = entity_registry->create();
+	horseEntity = entity_registry->create();
 
 	auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
 	playerController.movementSpeed = 6.0f;
@@ -408,6 +408,22 @@ void Game::renderUI()
 	ImGui::Checkbox("Spine subtree uses waving", &rightCharacterSubtreeUsesWave);
 
 	ImGui::End(); // end info window
+
+	//Allan Custom ImGui window for A1
+	ImGui::Begin("Allan Custom Stuff");
+
+	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f", ImGui::GetTime());
+
+	auto& transform = entity_registry->get<TransformComponent>(horseEntity);
+
+	float uniformScale = transform.scale.x;
+
+	if (ImGui::SliderFloat("Horse Scale", &uniformScale, 0.0f, 0.2f,"%0.2f"))
+	{
+		transform.scale = glm::vec3(uniformScale);
+	}
+
+	ImGui::End();
 
 	// In-world position label at horse position
 	const auto VP_P_V = matrices.VP * matrices.P * matrices.V;

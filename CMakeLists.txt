@@ -31,6 +31,8 @@ endif()
 
 # 'target_include_directories' if target specific
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Module1)
+
 
 #
 # OpenGL
@@ -199,6 +201,10 @@ add_executable(Module1
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ForwardRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ShapeRenderer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Log.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemMovement.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemRender.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Module1/SystemPlayerController.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Module1/SystemNPCController.cpp
     )
 
 set_target_properties(Module1 PROPERTIES

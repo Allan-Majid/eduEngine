@@ -63,6 +63,8 @@ private:
     // Immediate-mode renderer for basic 2D or 3D primitives
     ShapeRendererPtr shapeRenderer;
 
+    entt::entity horseEntity;
+
     // Entity registry - to use in labs
     std::shared_ptr<entt::registry> entity_registry;
 
