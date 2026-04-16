@@ -176,7 +176,6 @@ void Game::update(
 		transform.position -= velocity.velocity * deltaTime;
 	}*/
 
-	movementSystem.Update(*entity_registry, deltaTime);
 
 
 	pointlight.pos = glm::vec3(
@@ -412,9 +411,12 @@ void Game::renderUI()
 	//Allan Custom ImGui window for A1
 	ImGui::Begin("Allan Custom Stuff");
 
-	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f", ImGui::GetTime());
+	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f Seconds", ImGui::GetTime());
+
 
 	auto& transform = entity_registry->get<TransformComponent>(horseEntity);
+
+	ImGui::Text("Horse Entity Position: \n X: %f \n Y: %f \n Z: %f \n", transform.position.x, transform.position.y, transform.position.z);
 
 	float uniformScale = transform.scale.x;
 
