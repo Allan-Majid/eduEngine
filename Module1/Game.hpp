@@ -11,6 +11,7 @@
 #include "SystemRender.hpp"
 #include "SystemPlayerController.hpp"
 #include "SystemNPCController.hpp"
+#include "SystemAnimation.hpp"
 
 /// @brief A Game may hold, update and render 3D geometry and GUI elements
 class Game : public eeng::GameBase
@@ -56,6 +57,11 @@ private:
 
 	// System for updating player-controlled entities based on input
 	PlayerControllerSystem playerControllerSystem;
+
+	// System for updating animated meshes based on their animation state
+	AnimationSystem animationSystem;
+
+
 
     // Renderer for rendering imported animated or non-animated models
     eeng::ForwardRendererPtr forwardRenderer;

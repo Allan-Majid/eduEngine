@@ -2,6 +2,7 @@
 
 #include <entt/entt.hpp>
 #include "ForwardRenderer.hpp"
+#include "ShapeRenderer.hpp"
 
 class RenderSystem
 {

@@ -9,6 +9,7 @@
 #include "ComponentMesh.hpp"
 #include "ComponentPlayerController.hpp"
 #include "ComponentNPCController.hpp"
+#include "ComponentAnimation.hpp"
 
 
 bool Game::init()
@@ -32,7 +33,7 @@ bool Game::init()
 
 
 
-	// Grass
+	 // Grass
 	grassMesh = std::make_shared<eeng::RenderableMesh>();
 	grassMesh->load("assets/grass/grass_trees_merged.fbx", false);
 
@@ -96,15 +97,23 @@ bool Game::init()
 	playerController.movementSpeed = 6.0f;
 
 	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
-	horseTransform.position = { 30.0f, 0.0f, -35.0f };
-	horseTransform.rotation = { 0.0f, 35.0f, 0.0f };
-	horseTransform.scale = { 0.01f, 0.01f, 0.01f };
+	horseTransform.position = { 0.0f, 0.0f, -35.0f };
+	horseTransform.rotation = { 0.0f, 270.0f, 0.0f };
+	horseTransform.scale = { 0.03f, 0.03f, 0.03f };
 
 	auto& horseMeshComponent = entity_registry->emplace<MeshComponent>(horseEntity);
 	horseMeshComponent.mesh = horseMesh;
 
 	auto& horseVelocity = entity_registry->emplace<LinearVelocityComponent>(horseEntity);
 	horseVelocity.velocity = { 1.0f, 0.0f, 0.0f };
+
+	auto& horseAnimation = entity_registry->emplace<AnimationComponent>(horseEntity);
+	horseAnimation.baseAnimation = 4; // Idle
+	horseAnimation.secondaryAnimation = 2; // eating
+	horseAnimation.blendFactor = 0.0f;
+	horseAnimation.useLayering = false;
+
+
 
 	//Npc entity
 	auto npcEntity = entity_registry->create();
@@ -164,6 +173,8 @@ void Game::update(
 	playerControllerSystem.Update(*entity_registry, input);
 	npcControllerSystem.Update(*entity_registry);
 	movementSystem.Update(*entity_registry, deltaTime);
+
+	animationSystem.Update(*entity_registry, deltaTime);
 
 
 	/*auto view = entity_registry->view<TransformComponent, LinearVelocityComponent>();
@@ -271,8 +282,12 @@ void Game::render(
 	grass_aabb = grassMesh->m_model_aabb.post_transform(grassWorldMatrix);
 
 	// Horse
-	/*horseMesh->animate(3, time);
-	forwardRenderer->renderMesh(horseMesh, horseWorldMatrix);
+
+#if 0
+		horseMesh->animate(3, time);
+	
+#endif
+	/*forwardRenderer->renderMesh(horseMesh, horseWorldMatrix);
 	horse_aabb = horseMesh->m_model_aabb.post_transform(horseWorldMatrix);*/
 
 	// Character, instance 1 (middle, moving) - single clip demo
@@ -416,14 +431,28 @@ void Game::renderUI()
 
 	auto& transform = entity_registry->get<TransformComponent>(horseEntity);
 
+
 	ImGui::Text("Horse Entity Position: \n X: %f \n Y: %f \n Z: %f \n", transform.position.x, transform.position.y, transform.position.z);
 
 	float uniformScale = transform.scale.x;
 
-	if (ImGui::SliderFloat("Horse Scale", &uniformScale, 0.0f, 0.2f,"%0.2f"))
+	if (ImGui::SliderFloat("Horse Scale", &uniformScale, 0.0f, 0.1f, "%0.2f"))
 	{
 		transform.scale = glm::vec3(uniformScale);
 	}
+
+	ImGui::SliderFloat("Horse Y Rotation", &transform.rotation.y, 0.0f, 360.0f, "%1.0f");
+	
+	auto& animationComponent = entity_registry->get<AnimationComponent>(horseEntity);
+	int primaryAnimation = animationComponent.baseAnimation;
+	int secondaryAnimation = animationComponent.secondaryAnimation;
+	ImGui::SliderInt("Horse Primary Animation", &primaryAnimation, 0, 25);
+
+	ImGui::SliderInt("Horse Secondary Animation", &secondaryAnimation, 0, 25);
+
+	ImGui::SliderFloat("Blend Factor", &animationComponent.blendFactor, 0.0f, 1.0f);
+	ImGui::Checkbox("Use Layering", &animationComponent.useLayering);
+	ImGui::Checkbox("Draw Skeleton", &animationComponent.drawSkeleton);
 
 	ImGui::End();
 
