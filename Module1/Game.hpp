@@ -71,6 +71,8 @@ private:
 
     entt::entity horseEntity;
 
+    entt::entity npcEntity;
+
     // Entity registry - to use in labs
     std::shared_ptr<entt::registry> entity_registry;
 

@@ -112,11 +112,12 @@ bool Game::init()
 	horseAnimation.secondaryAnimation = 2; // eating
 	horseAnimation.blendFactor = 0.0f;
 	horseAnimation.useLayering = false;
+	horseAnimation.upperBodyRootNode = "";
 
 
 
 	//Npc entity
-	auto npcEntity = entity_registry->create();
+	npcEntity = entity_registry->create();
 
 	auto& npcTransform = entity_registry->emplace<TransformComponent>(npcEntity);
 	npcTransform.position = { -5.0f, 0.0f, -5.0f };
@@ -139,6 +140,13 @@ bool Game::init()
 		{  5.0f, 0.0f,  5.0f },
 		{  5.0f, 0.0f, -5.0f }
 	};
+
+	auto& npcAnimationComponent = entity_registry->emplace<AnimationComponent>(npcEntity);
+	npcAnimationComponent.baseAnimation = 2;
+	npcAnimationComponent.secondaryAnimation = 3;
+	npcAnimationComponent.blendFactor = 0.7f;
+	npcAnimationComponent.useLayering = true;
+	npcAnimationComponent.upperBodyRootNode = "mixamorig:Spine";
 
 
 	eeng::Log("Horse entity has TransformComponent: %s",
@@ -272,7 +280,7 @@ void Game::render(
 		forwardRenderer->renderMesh(meshPtr, worldMatrix);
 	}*/
 
-	renderSystem.Render(*entity_registry, forwardRenderer, time);
+	renderSystem.Render(*entity_registry, forwardRenderer, shapeRenderer, time);
 
 
 
@@ -284,12 +292,12 @@ void Game::render(
 	// Horse
 
 #if 0
-		horseMesh->animate(3, time);
-	
+	horseMesh->animate(3, time);
+
 #endif
 	/*forwardRenderer->renderMesh(horseMesh, horseWorldMatrix);
 	horse_aabb = horseMesh->m_model_aabb.post_transform(horseWorldMatrix);*/
-
+#if 0
 	// Character, instance 1 (middle, moving) - single clip demo
 	characterMesh->animate(middleCharacterAnimIndex, time * characterAnimSpeed);
 	forwardRenderer->renderMesh(characterMesh, characterWorldMatrix1);
@@ -311,7 +319,7 @@ void Game::render(
 	characterMesh->animateBlend(2 /* walk */, 3 /* wave */, time, time, upperBodyFilter);
 	forwardRenderer->renderMesh(characterMesh, characterWorldMatrix3);
 	character_aabb3 = characterMesh->m_model_aabb.post_transform(characterWorldMatrix3);
-
+#endif
 	// End rendering pass
 	drawcallCount = forwardRenderer->endPass();
 
@@ -423,36 +431,61 @@ void Game::renderUI()
 
 	ImGui::End(); // end info window
 
-	//Allan Custom ImGui window for A1
+	//Allan Custom ImGui window for A1-4
 	ImGui::Begin("Allan Custom Stuff");
 
 	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f Seconds", ImGui::GetTime());
-
-
-	auto& transform = entity_registry->get<TransformComponent>(horseEntity);
-
-
-	ImGui::Text("Horse Entity Position: \n X: %f \n Y: %f \n Z: %f \n", transform.position.x, transform.position.y, transform.position.z);
-
-	float uniformScale = transform.scale.x;
-
-	if (ImGui::SliderFloat("Horse Scale", &uniformScale, 0.0f, 0.1f, "%0.2f"))
+#pragma region Horse Enitity UI Stuff
+	if (ImGui::CollapsingHeader("Player Controlled Horse Entity Stuff"))
 	{
-		transform.scale = glm::vec3(uniformScale);
+		auto& horseTransform = entity_registry->get<TransformComponent>(horseEntity);
+
+
+		ImGui::Text("Horse Entity Position: \n X: %f \n Y: %f \n Z: %f \n", horseTransform.position.x, horseTransform.position.y, horseTransform.position.z);
+
+		float uniformScale = horseTransform.scale.x;
+
+		if (ImGui::SliderFloat("Horse Scale##horse", &uniformScale, 0.0f, 0.1f, "%0.2f"))
+		{
+			horseTransform.scale = glm::vec3(uniformScale);
+		}
+
+		ImGui::SliderFloat("Horse Y Rotation##horse", &horseTransform.rotation.y, 0.0f, 360.0f, "%1.0f");
+
+		auto& horseAnimationComponent = entity_registry->get<AnimationComponent>(horseEntity);
+		ImGui::SliderInt("Horse Primary Animation##horse", &horseAnimationComponent.baseAnimation, 0, 10);
+
+		ImGui::SliderInt("Horse Secondary Animation##horse", &horseAnimationComponent.secondaryAnimation, 0, 10);
+
+		ImGui::SliderFloat("Blend Factor##horse", &horseAnimationComponent.blendFactor, 0.0f, 1.0f, "%0.2f");
+		ImGui::Checkbox("Use Speed Control##horse", &horseAnimationComponent.useSpeedControl);
+		ImGui::SliderFloat("Horse Speed##horse", &horseAnimationComponent.speed, 0.0f, 1.0f, "%0.2f");
+		ImGui::Checkbox("Use Layering##horse", &horseAnimationComponent.useLayering);
+		ImGui::Checkbox("Draw Skeleton##horse", &horseAnimationComponent.drawSkeleton);
 	}
 
-	ImGui::SliderFloat("Horse Y Rotation", &transform.rotation.y, 0.0f, 360.0f, "%1.0f");
-	
-	auto& animationComponent = entity_registry->get<AnimationComponent>(horseEntity);
-	int primaryAnimation = animationComponent.baseAnimation;
-	int secondaryAnimation = animationComponent.secondaryAnimation;
-	ImGui::SliderInt("Horse Primary Animation", &primaryAnimation, 0, 25);
+#pragma endregion
 
-	ImGui::SliderInt("Horse Secondary Animation", &secondaryAnimation, 0, 25);
 
-	ImGui::SliderFloat("Blend Factor", &animationComponent.blendFactor, 0.0f, 1.0f);
-	ImGui::Checkbox("Use Layering", &animationComponent.useLayering);
-	ImGui::Checkbox("Draw Skeleton", &animationComponent.drawSkeleton);
+#pragma region NPC Entity UI Stuff
+
+	if (ImGui::CollapsingHeader("NPC Controlled Character Stuff"))
+	{
+		auto& npcVelocity = entity_registry->get<NPCControllerComponent>(npcEntity);
+
+		auto& npcAnimationComponent = entity_registry->get<AnimationComponent>(npcEntity);
+		ImGui::SliderInt("NPC Primary Animation##npc", &npcAnimationComponent.baseAnimation, 0, 3);
+
+		ImGui::SliderInt("NPC Secondary Animation##npc", &npcAnimationComponent.secondaryAnimation, 0, 3);
+
+		ImGui::SliderFloat("Blend Factor##npc", &npcAnimationComponent.blendFactor, 0.0f, 1.0f, "%0.2f");
+		ImGui::Checkbox("Use Speed Control##npc", &npcAnimationComponent.useSpeedControl);
+		ImGui::SliderFloat("NPC Movement Speed##npc", &npcVelocity.movementSpeed, 0.0f, 4.0f, "%0.1f");
+		ImGui::Checkbox("Use Layering##npc", &npcAnimationComponent.useLayering);
+		ImGui::Checkbox("Draw Skeleton##npc", &npcAnimationComponent.drawSkeleton);
+	}
+#pragma endregion
+
 
 	ImGui::End();
 
