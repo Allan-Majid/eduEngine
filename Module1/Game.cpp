@@ -33,61 +33,13 @@ void Game::update(
 	float deltaTime,
 	InputManagerPtr input)
 {
+
 	eventQueue.BroadcastAllEvents();
 
-	updateCamera(input);
+	updateInputAndCamera(deltaTime, input);
+	updateSystems(deltaTime, input);
+	updateSceneState(time);
 
-	updatePlayer(deltaTime, input);
-
-	playerControllerSystem.Update(*entity_registry, input);
-	npcControllerSystem.Update(*entity_registry);
-	movementSystem.Update(*entity_registry, deltaTime);
-
-	animationSystem.Update(*entity_registry, deltaTime);
-
-
-
-	pointlight.pos = glm::vec3(
-		glm_aux::R(time * 0.1f, { 0.0f, 1.0f, 0.0f }) *
-		glm::vec4(100.0f, 100.0f, 100.0f, 1.0f));
-
-	characterWorldMatrix1 = glm_aux::TRS(
-		player.pos,
-		0.0f, { 0, 1, 0 },
-		{ 0.03f, 0.03f, 0.03f });
-
-	characterWorldMatrix2 = glm_aux::TRS(
-		{ -3, 0, 0 },
-		time * glm::radians(50.0f), { 0, 1, 0 },
-		{ 0.03f, 0.03f, 0.03f });
-
-	characterWorldMatrix3 = glm_aux::TRS(
-		{ 3, 0, 0 },
-		time * glm::radians(50.0f), { 0, 1, 0 },
-		{ 0.03f, 0.03f, 0.03f });
-
-	// Intersect player view ray with AABBs of other objects 
-	// Intersection results are stored in the ray's point_of_contact and can be used for picking, shooting, etc.
-	glm_aux::intersect_ray_AABB(player.viewRay, character_aabb2.min, character_aabb2.max);
-	glm_aux::intersect_ray_AABB(player.viewRay, character_aabb3.min, character_aabb3.max);
-	glm_aux::intersect_ray_AABB(player.viewRay, horse_aabb.min, horse_aabb.max);
-
-	// We can also compute a ray from the current mouse position picking etc
-	// Let's try it: if the left mouse button is pressed, 
-	// compute a ray from the camera through the mouse cursor and log it
-	if (input->GetMouseState().rightButton)
-	{
-		// Note: mouse Y is typically inverted in window coordinates, so we flip it here to get the correct ray direction
-		glm::ivec2 windowPos(camera.mouse_xy_prev.x, matrices.windowSize.y - camera.mouse_xy_prev.y);
-
-		// Compute a ray from the camera through the mouse cursor
-		auto ray = glm_aux::world_ray_from_window_coords(windowPos, matrices.V, matrices.P, matrices.VP);
-
-		// Now we can use the ray for picking, intersection tests, etc. For now, let's just log it.
-		eeng::Log("Picking ray origin = %s, dir = %s",
-			glm_aux::to_string(ray.origin).c_str(),
-			glm_aux::to_string(ray.dir).c_str());
-	}
 }
 
 void Game::render(
@@ -96,127 +48,13 @@ void Game::render(
 	int windowHeight)
 {
 	renderUI();
+	updateRenderMatrices(windowWidth, windowHeight);
 
-	matrices.windowSize = glm::ivec2(windowWidth, windowHeight);
-
-	// Projection matrix
-	const float aspectRatio = float(windowWidth) / windowHeight;
-	matrices.P = glm::perspective(glm::radians(60.0f), aspectRatio, camera.nearPlane, camera.farPlane);
-	// View matrix
-	matrices.V = glm::lookAt(camera.pos, camera.lookAt, camera.up);
-	// Viewport matrix
-	matrices.VP = glm_aux::create_viewport_matrix(0.0f, 0.0f, windowWidth, windowHeight, 0.0f, 1.0f);
-	// Begin rendering pass
 	forwardRenderer->beginPass(matrices.P, matrices.V, pointlight.pos, pointlight.color, camera.pos);
-
-	//Allan Stuff
-	/*auto view = entity_registry->view<TransformComponent, MeshComponent>();
-
-	for (auto entity : view)
-	{
-		auto& transform = view.get<TransformComponent>(entity);
-		auto& meshComponent = view.get<MeshComponent>(entity);
-
-		auto meshPtr = meshComponent.mesh.lock();
-		if (!meshPtr)
-			continue;
-
-		glm::mat4 worldMatrix = glm_aux::TRS(
-			transform.position,
-			transform.rotation.y, { 0, 1, 0 },
-			transform.scale
-		);
-
-		forwardRenderer->renderMesh(meshPtr, worldMatrix);
-	}*/
-
-	renderSystem.Render(*entity_registry, forwardRenderer, shapeRenderer, time);
-
-
-
-
-	// Grass
-	forwardRenderer->renderMesh(grassMesh, grassWorldMatrix);
-	grass_aabb = grassMesh->m_model_aabb.post_transform(grassWorldMatrix);
-
-	// Horse
-
-#if 0
-	horseMesh->animate(3, time);
-
-#endif
-	/*forwardRenderer->renderMesh(horseMesh, horseWorldMatrix);
-	horse_aabb = horseMesh->m_model_aabb.post_transform(horseWorldMatrix);*/
-#if 0
-	// Character, instance 1 (middle, moving) - single clip demo
-	characterMesh->animate(middleCharacterAnimIndex, time * characterAnimSpeed);
-	forwardRenderer->renderMesh(characterMesh, characterWorldMatrix1);
-	character_aabb1 = characterMesh->m_model_aabb.post_transform(characterWorldMatrix1);
-
-	// Character, instance 2 (left) - two-clip full-body blend
-	// Explanation: Both 'idle' and 'walk' clips are applied to the entire skeleton with a blend factor.
-	characterMesh->animateBlend(1, 2, time, time, leftCharacterAnimBlend);
-	forwardRenderer->renderMesh(characterMesh, characterWorldMatrix2);
-	character_aabb2 = characterMesh->m_model_aabb.post_transform(characterWorldMatrix2);
-
-	// Character, instance 3 (right) - filtered walk + wave
-	// Explanation: Nodes in the "mixamorig:Spine" branch (upper body) gets the 'wave' clip, while the rest (lower body) gets the 'walk' clip.
-	eeng::AnimationBranchDesc upperBodyFilter;
-	upperBodyFilter.root_node_name = "mixamorig:Spine";
-	upperBodyFilter.mode = rightCharacterSubtreeUsesWave
-		? eeng::AnimationBranchDesc::Mode::IncludeSubtree
-		: eeng::AnimationBranchDesc::Mode::ExcludeSubtree;
-	characterMesh->animateBlend(2 /* walk */, 3 /* wave */, time, time, upperBodyFilter);
-	forwardRenderer->renderMesh(characterMesh, characterWorldMatrix3);
-	character_aabb3 = characterMesh->m_model_aabb.post_transform(characterWorldMatrix3);
-#endif
-	// End rendering pass
+	renderScene(time);
 	drawcallCount = forwardRenderer->endPass();
 
-	// Debug draw player view ray
-	// Green line if the ray hits an object, white line if it doesn't.
-	if (player.viewRay)
-	{
-		shapeRenderer->push_states(ShapeRendering::Color4u{ 0xff00ff00 });
-		shapeRenderer->push_line(player.viewRay.origin, player.viewRay.point_of_contact());
-	}
-	else
-	{
-		shapeRenderer->push_states(ShapeRendering::Color4u{ 0xffffffff });
-		shapeRenderer->push_line(player.viewRay.origin, player.viewRay.origin + player.viewRay.dir * 100.0f);
-	}
-	shapeRenderer->pop_states<ShapeRendering::Color4u>();
-
-	// Debug draw object bases
-	{
-		shapeRenderer->push_basis_basic(characterWorldMatrix1, 1.0f);
-		shapeRenderer->push_basis_basic(characterWorldMatrix2, 1.0f);
-		shapeRenderer->push_basis_basic(characterWorldMatrix3, 1.0f);
-		shapeRenderer->push_basis_basic(grassWorldMatrix, 1.0f);
-		shapeRenderer->push_basis_basic(horseWorldMatrix, 1.0f);
-	}
-
-	// Debug draw AABBs
-	{
-		shapeRenderer->push_states(ShapeRendering::Color4u{ 0xFFE61A80 });
-		shapeRenderer->push_AABB(character_aabb1.min, character_aabb1.max);
-		shapeRenderer->push_AABB(character_aabb2.min, character_aabb2.max);
-		shapeRenderer->push_AABB(character_aabb3.min, character_aabb3.max);
-		shapeRenderer->push_AABB(horse_aabb.min, horse_aabb.max);
-		shapeRenderer->push_AABB(grass_aabb.min, grass_aabb.max);
-		shapeRenderer->pop_states<ShapeRendering::Color4u>();
-	}
-
-#if 0
-	// Demo draw other shapes
-	{
-		shapeRenderer->push_states(glm_aux::T(glm::vec3(0.0f, 0.0f, -5.0f)));
-		ShapeRendering::DemoDraw(shapeRenderer);
-		shapeRenderer->pop_states<glm::mat4>();
-	}
-#endif
-
-	// Draw shape batches (lines etc)
+	renderDebugShapes();
 	shapeRenderer->render(matrices.P * matrices.V);
 	shapeRenderer->post_render();
 }
@@ -555,4 +393,78 @@ void Game::logEntitySetup()
 	eeng::Log("Horse entity has MeshComponent: %s", entity_registry->all_of<MeshComponent>(horseEntity) ? "true" : "false");
 	eeng::Log("Horse ECS Transform position: (%f, %f, %f)", horseTransform.position.x, horseTransform.position.y, horseTransform.position.z);
 	eeng::Log("Is horseEntity an Orphan? Answer: %s", entity_registry->orphan(horseEntity) ? "true" : "false");
+}
+
+void Game::updateRenderMatrices(int windowWidth, int windowHeight)
+{
+	matrices.windowSize = glm::ivec2(windowWidth, windowHeight);
+
+	const float aspectRatio = float(windowWidth) / windowHeight;
+	matrices.P = glm::perspective(glm::radians(60.0f), aspectRatio, camera.nearPlane, camera.farPlane);
+	matrices.V = glm::lookAt(camera.pos, camera.lookAt, camera.up);
+	matrices.VP = glm_aux::create_viewport_matrix(0.0f, 0.0f, windowWidth, windowHeight, 0.0f, 1.0f);
+}
+
+void Game::renderScene(float time)
+{
+	renderSystem.Render(*entity_registry, forwardRenderer, shapeRenderer, time);
+
+	forwardRenderer->renderMesh(grassMesh, grassWorldMatrix);
+	grass_aabb = grassMesh->m_model_aabb.post_transform(grassWorldMatrix);
+}
+
+void Game::renderDebugShapes()
+{
+	if (player.viewRay)
+	{
+		shapeRenderer->push_states(ShapeRendering::Color4u{ 0xff00ff00 });
+		shapeRenderer->push_line(player.viewRay.origin, player.viewRay.point_of_contact());
+	}
+	else
+	{
+		shapeRenderer->push_states(ShapeRendering::Color4u{ 0xffffffff });
+		shapeRenderer->push_line(player.viewRay.origin, player.viewRay.origin + player.viewRay.dir * 100.0f);
+	}
+
+	shapeRenderer->pop_states<ShapeRendering::Color4u>();
+
+	shapeRenderer->push_states(ShapeRendering::Color4u{ 0xFFE61A80 });
+	shapeRenderer->push_AABB(character_aabb1.min, character_aabb1.max);
+	shapeRenderer->push_AABB(character_aabb2.min, character_aabb2.max);
+	shapeRenderer->push_AABB(character_aabb3.min, character_aabb3.max);
+	shapeRenderer->push_AABB(horse_aabb.min, horse_aabb.max);
+	shapeRenderer->push_AABB(grass_aabb.min, grass_aabb.max);
+	shapeRenderer->pop_states<ShapeRendering::Color4u>();
+}
+
+void Game::updateSceneState(float time)
+{
+	pointlight.pos = glm::vec3(glm_aux::R(time * 0.1f, { 0.0f, 1.0f, 0.0f }) * glm::vec4(100.0f, 100.0f, 100.0f, 1.0f));
+
+	characterWorldMatrix1 = glm_aux::TRS(player.pos, 0.0f, { 0, 1, 0 }, { 0.03f, 0.03f, 0.03f });
+	characterWorldMatrix2 = glm_aux::TRS({ -3, 0, 0 }, time * glm::radians(50.0f), { 0, 1, 0 }, { 0.03f, 0.03f, 0.03f });
+	characterWorldMatrix3 = glm_aux::TRS({ 3, 0, 0 }, time * glm::radians(50.0f), { 0, 1, 0 }, { 0.03f, 0.03f, 0.03f });
+
+	glm_aux::intersect_ray_AABB(player.viewRay, character_aabb2.min, character_aabb2.max);
+	glm_aux::intersect_ray_AABB(player.viewRay, character_aabb3.min, character_aabb3.max);
+	glm_aux::intersect_ray_AABB(player.viewRay, horse_aabb.min, horse_aabb.max);
+
+	if (player.viewRay)
+	{
+		eeng::Log("Ray intersects at (%f, %f, %f)", player.viewRay.point_of_contact().x, player.viewRay.point_of_contact().y, player.viewRay.point_of_contact().z);
+	}
+}
+
+void Game::updateSystems(float deltaTime, InputManagerPtr input)
+{
+	playerControllerSystem.Update(*entity_registry, input);
+	npcControllerSystem.Update(*entity_registry);
+	movementSystem.Update(*entity_registry, deltaTime);
+	animationSystem.Update(*entity_registry, deltaTime);
+}
+
+void Game::updateInputAndCamera(float deltaTime, InputManagerPtr input)
+{
+	updateCamera(input);
+	updatePlayer(deltaTime, input);
 }

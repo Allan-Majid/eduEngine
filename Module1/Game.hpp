@@ -88,6 +88,16 @@ private:
     void createNPCEntity();
     void logEntitySetup();
 
+	//helper methods for rendering
+    void updateRenderMatrices(int windowWidth, int windowHeight);
+    void renderScene(float time);
+    void renderDebugShapes();
+
+	//helper methods for updating
+    void updateInputAndCamera(float deltaTime, InputManagerPtr input);
+    void updateSystems(float deltaTime, InputManagerPtr input);
+    void updateSceneState(float time);
+
     // Renderer for rendering imported animated or non-animated models
     eeng::ForwardRendererPtr forwardRenderer;
 
