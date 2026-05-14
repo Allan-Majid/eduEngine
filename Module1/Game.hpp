@@ -78,7 +78,15 @@ private:
 	// System for updating animated meshes based on their animation state
 	AnimationSystem animationSystem;
 
-
+    //helper methods for Game::init
+    void initRenderers();
+    void initRegistry();
+    void initEventSystem();
+    void loadMeshes();
+    void initWorldMatrices();
+    void createHorseEntity();
+    void createNPCEntity();
+    void logEntitySetup();
 
     // Renderer for rendering imported animated or non-animated models
     eeng::ForwardRendererPtr forwardRenderer;

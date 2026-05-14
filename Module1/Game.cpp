@@ -14,162 +14,15 @@
 
 bool Game::init()
 {
-	forwardRenderer = std::make_shared<eeng::ForwardRenderer>();
-	forwardRenderer->init("shaders/phong_vert.glsl", "shaders/phong_frag.glsl");
 
-	shapeRenderer = std::make_shared<ShapeRendering::ShapeRenderer>();
-	shapeRenderer->init();
-
-	// Do some entt stuff
-	entity_registry = std::make_shared<entt::registry>();
-	auto ent2 = entity_registry->create();
-	auto ent3 = entity_registry->create();
-
-	/* struct Tfm
-	 {
-		 float x, y, z;
-	 };
-	 entity_registry->emplace<Tfm>(ent1, Tfm{});*/
-
-	debugListenerId = eventQueue.RegisterListener([this](const GameEvent& event)
-		{
-			debugEventListener.OnNotify(event);
-		}
-	);
-
-	eventQueue.EnqueueEvent({ GameEventType::DebugMessage, entt::null, entt::null, "Event system initialized" });
-
-	// Grass
-	grassMesh = std::make_shared<eeng::RenderableMesh>();
-	grassMesh->load("assets/grass/grass_trees_merged.fbx", false);
-
-	// Horse
-	horseMesh = std::make_shared<eeng::RenderableMesh>();
-	horseMesh->load("assets/Animals/Horse.fbx", false);
-
-	// Character
-	characterMesh = std::make_shared<eeng::RenderableMesh>();
-#if 0
-	// Character
-	characterMesh->load("assets/Ultimate Platformer Pack/Character/Character.fbx", false);
-#endif
-#if 0
-	// Enemy
-	characterMesh->load("assets/Ultimate Platformer Pack/Enemies/Bee.fbx", false);
-#endif
-#if 0
-	// ExoRed 5.0.1 PACK FBX, 60fps, No keyframe reduction
-	characterMesh->load("assets/ExoRed/exo_red.fbx");
-	characterMesh->load("assets/ExoRed/idle (2).fbx", true);
-	characterMesh->load("assets/ExoRed/walking.fbx", true);
-	// Remove root motion
-	characterMesh->removeTranslationKeys("mixamorig:Hips");
-#endif
-#if 1
-	// Amy 5.0.1 PACK FBX
-	characterMesh->load("assets/Amy/Ch46_nonPBR.fbx");
-	characterMesh->load("assets/Amy/idle.fbx", true);
-	characterMesh->load("assets/Amy/walking.fbx", true);
-	characterMesh->load("assets/Amy/waving.fbx", true);
-	// Remove root motion
-	characterMesh->removeTranslationKeys("mixamorig:Hips");
-#endif
-#if 0
-	// Eve 5.0.1 PACK FBX
-	// Fix for assimp 5.0.1 (https://github.com/assimp/assimp/issues/4486)
-	// FBXConverter.cpp, line 648: 
-	//      const float zero_epsilon = 1e-6f; => const float zero_epsilon = Math::getEpsilon<float>();
-	characterMesh->load("assets/Eve/Eve By J.Gonzales.fbx");
-	characterMesh->load("assets/Eve/idle.fbx", true);
-	characterMesh->load("assets/Eve/walking.fbx", true);
-	// Remove root motion
-	characterMesh->removeTranslationKeys("mixamorig:Hips");
-#endif
-
-	grassWorldMatrix = glm_aux::TRS(
-		{ 0.0f, 0.0f, 0.0f },
-		0.0f, { 0, 1, 0 },
-		{ 100.0f, 100.0f, 100.0f });
-
-	horseWorldMatrix = glm_aux::TRS(
-		{ 30.0f, 0.0f, -35.0f },
-		35.0f, { 0, 1, 0 },
-		{ 0.01f, 0.01f, 0.01f });
-
-	//Horse entity
-	horseEntity = entity_registry->create();
-
-	auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
-	playerController.movementSpeed = 6.0f;
-
-	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
-	horseTransform.position = { 0.0f, 0.0f, -35.0f };
-	horseTransform.rotation = { 0.0f, 270.0f, 0.0f };
-	horseTransform.scale = { 0.03f, 0.03f, 0.03f };
-
-	auto& horseMeshComponent = entity_registry->emplace<MeshComponent>(horseEntity);
-	horseMeshComponent.mesh = horseMesh;
-
-	auto& horseVelocity = entity_registry->emplace<LinearVelocityComponent>(horseEntity);
-	horseVelocity.velocity = { 1.0f, 0.0f, 0.0f };
-
-	auto& horseAnimation = entity_registry->emplace<AnimationComponent>(horseEntity);
-	horseAnimation.baseAnimation = 4; // Idle
-	horseAnimation.secondaryAnimation = 2; // eating
-	horseAnimation.blendFactor = 0.0f;
-	horseAnimation.useLayering = false;
-	horseAnimation.upperBodyRootNode = "";
-
-
-
-	//Npc entity
-	npcEntity = entity_registry->create();
-
-	auto& npcTransform = entity_registry->emplace<TransformComponent>(npcEntity);
-	npcTransform.position = { -5.0f, 0.0f, -5.0f };
-	npcTransform.rotation = { 0.0f, 0.0f, 0.0f };
-	npcTransform.scale = { 0.03f, 0.03f, 0.03f };
-
-	auto& npcMesh = entity_registry->emplace<MeshComponent>(npcEntity);
-	npcMesh.mesh = characterMesh;
-
-	auto& npcVelocity = entity_registry->emplace<LinearVelocityComponent>(npcEntity);
-	npcVelocity.velocity = { 0.0f, 0.0f, 0.0f };
-
-	auto& npcController = entity_registry->emplace<NPCControllerComponent>(npcEntity);
-	npcController.movementSpeed = 2.0f;
-	npcController.arriveDistance = 0.5f;
-	npcController.waypoints =
-	{
-		{ -5.0f, 0.0f, -5.0f },
-		{ -5.0f, 0.0f,  5.0f },
-		{  5.0f, 0.0f,  5.0f },
-		{  5.0f, 0.0f, -5.0f }
-	};
-
-	auto& npcAnimationComponent = entity_registry->emplace<AnimationComponent>(npcEntity);
-	npcAnimationComponent.baseAnimation = 2;
-	npcAnimationComponent.secondaryAnimation = 3;
-	npcAnimationComponent.blendFactor = 0.7f;
-	npcAnimationComponent.useLayering = true;
-	npcAnimationComponent.upperBodyRootNode = "mixamorig:Spine";
-
-
-	eeng::Log("Horse entity has TransformComponent: %s",
-		entity_registry->all_of<TransformComponent>(horseEntity) ? "true" : "false");
-
-	eeng::Log("Horse entity has MeshComponent: %s",
-		entity_registry->all_of<MeshComponent>(horseEntity) ? "true" : "false");
-
-
-	eeng::Log("Horse ECS Transform position: (%f, %f, %f)",
-		horseTransform.position.x,
-		horseTransform.position.y,
-		horseTransform.position.z);
-
-	auto& transformLogOutput = entity_registry->get<TransformComponent>(horseEntity);
-	eeng::Log("Transform Created at (%f,%f,%f)", transformLogOutput.position.x, transformLogOutput.position.y, transformLogOutput.position.z);
-	eeng::Log("Is horseEntity an Orphan? Answer: %s", entity_registry->orphan(horseEntity) ? "true" : "false");
+	initRenderers();
+	initRegistry();
+	initEventSystem();
+	loadMeshes();
+	initWorldMatrices();
+	createHorseEntity();
+	createNPCEntity();
+	logEntitySetup();
 
 	return true;
 
@@ -596,4 +449,110 @@ void Game::renderAnimationControls(const char* labelPrefix, AnimationComponent& 
 	ImGui::SliderFloat((std::string(labelPrefix) + " Speed" + id).c_str(), &animationComponent.speed, 0.0f, 1.0f, "%0.2f");
 	ImGui::Checkbox((std::string("Use Layering") + id).c_str(), &animationComponent.useLayering);
 	ImGui::Checkbox((std::string("Draw Skeleton") + id).c_str(), &animationComponent.drawSkeleton);
+}
+
+void Game::initRenderers()
+{
+	forwardRenderer = std::make_shared<eeng::ForwardRenderer>();
+	forwardRenderer->init("shaders/phong_vert.glsl", "shaders/phong_frag.glsl");
+
+	shapeRenderer = std::make_shared<ShapeRendering::ShapeRenderer>();
+	shapeRenderer->init();
+}
+
+void Game::initRegistry()
+{
+	entity_registry = std::make_shared<entt::registry>();
+}
+
+void Game::initEventSystem()
+{
+	debugListenerId = eventQueue.RegisterListener([this](const GameEvent& event) { debugEventListener.OnNotify(event); });
+	eventQueue.EnqueueEvent({ GameEventType::DebugMessage, entt::null, entt::null, "Event system initialized" });
+}
+
+void Game::loadMeshes()
+{
+	grassMesh = std::make_shared<eeng::RenderableMesh>();
+	grassMesh->load("assets/grass/grass_trees_merged.fbx", false);
+
+	horseMesh = std::make_shared<eeng::RenderableMesh>();
+	horseMesh->load("assets/Animals/Horse.fbx", false);
+
+	characterMesh = std::make_shared<eeng::RenderableMesh>();
+	characterMesh->load("assets/Amy/Ch46_nonPBR.fbx");
+	characterMesh->load("assets/Amy/idle.fbx", true);
+	characterMesh->load("assets/Amy/walking.fbx", true);
+	characterMesh->load("assets/Amy/waving.fbx", true);
+	characterMesh->removeTranslationKeys("mixamorig:Hips");
+}
+
+void Game::initWorldMatrices()
+{
+	grassWorldMatrix = glm_aux::TRS({ 0.0f, 0.0f, 0.0f }, 0.0f, { 0, 1, 0 }, { 100.0f, 100.0f, 100.0f });
+	horseWorldMatrix = glm_aux::TRS({ 30.0f, 0.0f, -35.0f }, 35.0f, { 0, 1, 0 }, { 0.01f, 0.01f, 0.01f });
+}
+
+void Game::createHorseEntity()
+{
+	horseEntity = entity_registry->create();
+
+	auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
+	playerController.movementSpeed = 6.0f;
+
+	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
+	horseTransform.position = { 0.0f, 0.0f, -35.0f };
+	horseTransform.rotation = { 0.0f, 270.0f, 0.0f };
+	horseTransform.scale = { 0.03f, 0.03f, 0.03f };
+
+	auto& horseMeshComponent = entity_registry->emplace<MeshComponent>(horseEntity);
+	horseMeshComponent.mesh = horseMesh;
+
+	auto& horseVelocity = entity_registry->emplace<LinearVelocityComponent>(horseEntity);
+	horseVelocity.velocity = { 1.0f, 0.0f, 0.0f };
+
+	auto& horseAnimation = entity_registry->emplace<AnimationComponent>(horseEntity);
+	horseAnimation.baseAnimation = 4;
+	horseAnimation.secondaryAnimation = 2;
+	horseAnimation.blendFactor = 0.0f;
+	horseAnimation.useLayering = false;
+	horseAnimation.upperBodyRootNode = "";
+}
+
+void Game::createNPCEntity()
+{
+	npcEntity = entity_registry->create();
+
+	auto& npcTransform = entity_registry->emplace<TransformComponent>(npcEntity);
+	npcTransform.position = { -5.0f, 0.0f, -5.0f };
+	npcTransform.rotation = { 0.0f, 0.0f, 0.0f };
+	npcTransform.scale = { 0.03f, 0.03f, 0.03f };
+
+	auto& npcMesh = entity_registry->emplace<MeshComponent>(npcEntity);
+	npcMesh.mesh = characterMesh;
+
+	auto& npcVelocity = entity_registry->emplace<LinearVelocityComponent>(npcEntity);
+	npcVelocity.velocity = { 0.0f, 0.0f, 0.0f };
+
+	auto& npcController = entity_registry->emplace<NPCControllerComponent>(npcEntity);
+	npcController.movementSpeed = 2.0f;
+	npcController.arriveDistance = 0.5f;
+	npcController.waypoints = { { -5.0f, 0.0f, -5.0f }, { -5.0f, 0.0f, 5.0f }, { 5.0f, 0.0f, 5.0f }, { 5.0f, 0.0f, -5.0f } };
+
+	auto& npcAnimationComponent = entity_registry->emplace<AnimationComponent>(npcEntity);
+	npcAnimationComponent.baseAnimation = 2;
+	npcAnimationComponent.secondaryAnimation = 3;
+	npcAnimationComponent.blendFactor = 0.7f;
+	npcAnimationComponent.useLayering = true;
+	npcAnimationComponent.upperBodyRootNode = "mixamorig:Spine";
+}
+
+void Game::logEntitySetup()
+{
+	auto& horseTransform = entity_registry->get<TransformComponent>(horseEntity);
+
+	eeng::Log("Horse entity has TransformComponent: %s", entity_registry->all_of<TransformComponent>(horseEntity) ? "true" : "false");
+	eeng::Log("Horse entity has MeshComponent: %s", entity_registry->all_of<MeshComponent>(horseEntity) ? "true" : "false");
+	eeng::Log("Horse ECS Transform position: (%f, %f, %f)", horseTransform.position.x, horseTransform.position.y, horseTransform.position.z);
+	eeng::Log("Is horseEntity an Orphan? Answer: %s", entity_registry->orphan(horseEntity) ? "true" : "false");
 }
