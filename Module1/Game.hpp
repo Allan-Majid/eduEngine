@@ -12,6 +12,8 @@
 #include "SystemPlayerController.hpp"
 #include "SystemNPCController.hpp"
 #include "SystemAnimation.hpp"
+#include "DebugEventListener.hpp"
+#include "EventQueue.hpp"
 
 struct AnimationComponent;
 
@@ -45,6 +47,11 @@ public:
     void destroy() override;
 
 private:
+
+    EventQueue eventQueue;
+    DebugEventListener debugEventListener;
+    std::uint8_t debugListenerId = 0;
+
     /// @brief For rendering of GUI elements
     void renderUI();
 

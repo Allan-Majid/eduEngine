@@ -31,9 +31,15 @@ bool Game::init()
 	 };
 	 entity_registry->emplace<Tfm>(ent1, Tfm{});*/
 
+	debugListenerId = eventQueue.RegisterListener([this](const GameEvent& event)
+		{
+			debugEventListener.OnNotify(event);
+		}
+	);
 
+	eventQueue.EnqueueEvent({ GameEventType::DebugMessage, entt::null, entt::null, "Event system initialized" });
 
-	 // Grass
+	// Grass
 	grassMesh = std::make_shared<eeng::RenderableMesh>();
 	grassMesh->load("assets/grass/grass_trees_merged.fbx", false);
 
@@ -174,6 +180,8 @@ void Game::update(
 	float deltaTime,
 	InputManagerPtr input)
 {
+	eventQueue.BroadcastAllEvents();
+
 	updateCamera(input);
 
 	updatePlayer(deltaTime, input);
@@ -183,17 +191,6 @@ void Game::update(
 	movementSystem.Update(*entity_registry, deltaTime);
 
 	animationSystem.Update(*entity_registry, deltaTime);
-
-
-	/*auto view = entity_registry->view<TransformComponent, LinearVelocityComponent>();
-
-	for (auto entity : view)
-	{
-		auto& transform = view.get<TransformComponent>(entity);
-		auto& velocity = view.get<LinearVelocityComponent>(entity);
-
-		transform.position -= velocity.velocity * deltaTime;
-	}*/
 
 
 
@@ -502,6 +499,10 @@ void Game::renderCustomDebugUI()
 	ImGui::Begin("Allan Custom Stuff");
 
 	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f Seconds", ImGui::GetTime());
+
+	ImGui::Separator();
+	ImGui::Text("Latest Event:");
+	ImGui::Text(debugEventListener.GetLastMessage().c_str());
 
 	renderHorseEntityUI();
 	renderNPCEntityUI();
