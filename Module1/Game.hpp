@@ -13,6 +13,8 @@
 #include "SystemNPCController.hpp"
 #include "SystemAnimation.hpp"
 
+struct AnimationComponent;
+
 /// @brief A Game may hold, update and render 3D geometry and GUI elements
 class Game : public eeng::GameBase
 {
@@ -45,6 +47,14 @@ public:
 private:
     /// @brief For rendering of GUI elements
     void renderUI();
+
+	// Helper methods for rendering different UI windows
+    void renderGameInfoUI();
+    void renderCustomDebugUI();
+    void renderHorseEntityUI();
+    void renderNPCEntityUI();
+    void renderAnimationControls(const char* labelPrefix, AnimationComponent& animationComponent, int maxAnimationIndex);
+    void renderInWorldHorseLabel();
 
 	// System for updating entity positions based on their velocity components
 	MovementSystem movementSystem;

@@ -373,151 +373,11 @@ void Game::render(
 
 void Game::renderUI()
 {
-	// Begin game info ImGui window
-	ImGui::Begin("Game Info");
 
-	ImGui::Text("Drawcall count %i", drawcallCount);
+	renderGameInfoUI();
+	renderCustomDebugUI();
+	renderInWorldHorseLabel();
 
-	// Color picker for light color
-	if (ImGui::ColorEdit3("Light color",
-		glm::value_ptr(pointlight.color),
-		ImGuiColorEditFlags_NoInputs))
-	{
-	}
-
-	if (characterMesh)
-	{
-		ImGui::Separator();
-		ImGui::Text("Middle Character (controllable): Single Clip");
-
-		// Combo (drop-down) for animation clip
-		int curAnimIndex = middleCharacterAnimIndex;
-		std::string label = (curAnimIndex == -1 ? "Bind pose" : characterMesh->getAnimationName(curAnimIndex));
-		if (ImGui::BeginCombo("Clip##middle_animclip", label.c_str()))
-		{
-			// Bind pose item
-			const bool isSelected = (curAnimIndex == -1);
-			if (ImGui::Selectable("Bind pose", isSelected))
-				curAnimIndex = -1;
-			if (isSelected)
-				ImGui::SetItemDefaultFocus();
-
-			// Clip items
-			for (int i = 0; i < characterMesh->getNbrAnimations(); i++)
-			{
-				const bool isSelected = (curAnimIndex == i);
-				const auto label = characterMesh->getAnimationName(i) + "##" + std::to_string(i);
-				if (ImGui::Selectable(label.c_str(), isSelected))
-					curAnimIndex = i;
-				if (isSelected)
-					ImGui::SetItemDefaultFocus();
-			}
-			ImGui::EndCombo();
-		}
-		middleCharacterAnimIndex = curAnimIndex;
-		ImGui::SliderFloat("Animation speed##middle_speed", &characterAnimSpeed, 0.1f, 5.0f);
-	}
-
-	ImGui::Separator();
-	ImGui::Text("Left Character: 2-Clip Blend");
-	ImGui::Text("Idle (1) + Walking (2)");
-	ImGui::SliderFloat("Blend factor##left_blend", &leftCharacterAnimBlend, 0.0f, 1.0f);
-
-	ImGui::Separator();
-	ImGui::Text("Right Character: Filtered Blend");
-	ImGui::Text("Walking (2) + Waving (3)");
-	ImGui::Text("Branch root: mixamorig:Spine");
-	ImGui::Checkbox("Spine subtree uses waving", &rightCharacterSubtreeUsesWave);
-
-	ImGui::End(); // end info window
-
-	//Allan Custom ImGui window for A1-4
-	ImGui::Begin("Allan Custom Stuff");
-
-	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f Seconds", ImGui::GetTime());
-#pragma region Horse Enitity UI Stuff
-	if (ImGui::CollapsingHeader("Player Controlled Horse Entity Stuff"))
-	{
-		auto& horseTransform = entity_registry->get<TransformComponent>(horseEntity);
-
-
-		ImGui::Text("Horse Entity Position: \n X: %f \n Y: %f \n Z: %f \n", horseTransform.position.x, horseTransform.position.y, horseTransform.position.z);
-
-		float uniformScale = horseTransform.scale.x;
-
-		if (ImGui::SliderFloat("Horse Scale##horse", &uniformScale, 0.0f, 0.1f, "%0.2f"))
-		{
-			horseTransform.scale = glm::vec3(uniformScale);
-		}
-
-		ImGui::SliderFloat("Horse Y Rotation##horse", &horseTransform.rotation.y, 0.0f, 360.0f, "%1.0f");
-
-		auto& horseAnimationComponent = entity_registry->get<AnimationComponent>(horseEntity);
-		ImGui::SliderInt("Horse Primary Animation##horse", &horseAnimationComponent.baseAnimation, 0, 10);
-
-		ImGui::SliderInt("Horse Secondary Animation##horse", &horseAnimationComponent.secondaryAnimation, 0, 10);
-
-		ImGui::SliderFloat("Blend Factor##horse", &horseAnimationComponent.blendFactor, 0.0f, 1.0f, "%0.2f");
-		ImGui::Checkbox("Use Speed Control##horse", &horseAnimationComponent.useSpeedControl);
-		ImGui::SliderFloat("Horse Speed##horse", &horseAnimationComponent.speed, 0.0f, 1.0f, "%0.2f");
-		ImGui::Checkbox("Use Layering##horse", &horseAnimationComponent.useLayering);
-		ImGui::Checkbox("Draw Skeleton##horse", &horseAnimationComponent.drawSkeleton);
-	}
-
-#pragma endregion
-
-
-#pragma region NPC Entity UI Stuff
-
-	if (ImGui::CollapsingHeader("NPC Controlled Character Stuff"))
-	{
-		auto& npcVelocity = entity_registry->get<NPCControllerComponent>(npcEntity);
-
-		auto& npcAnimationComponent = entity_registry->get<AnimationComponent>(npcEntity);
-		ImGui::SliderInt("NPC Primary Animation##npc", &npcAnimationComponent.baseAnimation, 0, 3);
-
-		ImGui::SliderInt("NPC Secondary Animation##npc", &npcAnimationComponent.secondaryAnimation, 0, 3);
-
-		ImGui::SliderFloat("Blend Factor##npc", &npcAnimationComponent.blendFactor, 0.0f, 1.0f, "%0.2f");
-		ImGui::Checkbox("Use Speed Control##npc", &npcAnimationComponent.useSpeedControl);
-		ImGui::SliderFloat("NPC Movement Speed##npc", &npcVelocity.movementSpeed, 0.0f, 4.0f, "%0.1f");
-		ImGui::Checkbox("Use Layering##npc", &npcAnimationComponent.useLayering);
-		ImGui::Checkbox("Draw Skeleton##npc", &npcAnimationComponent.drawSkeleton);
-	}
-#pragma endregion
-
-
-	ImGui::End();
-
-	// In-world position label at horse position
-	const auto VP_P_V = matrices.VP * matrices.P * matrices.V;
-	auto world_pos = glm::vec3(horseWorldMatrix[3]);
-	glm::ivec2 window_coords;
-	if (glm_aux::window_coords_from_world_pos(world_pos, VP_P_V, window_coords))
-	{
-		// Draw an ImGui label at the projected window coordinates of the horse
-		ImGui::SetNextWindowPos(
-			ImVec2{ float(window_coords.x), float(matrices.windowSize.y - window_coords.y) },
-			ImGuiCond_Always,
-			ImVec2{ 0.0f, 0.0f });
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, 0x80000000);
-		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
-
-		ImGuiWindowFlags flags =
-			ImGuiWindowFlags_NoDecoration |
-			ImGuiWindowFlags_NoInputs |
-			// ImGuiWindowFlags_NoBackground |
-			ImGuiWindowFlags_AlwaysAutoResize;
-
-		if (ImGui::Begin("window_name", nullptr, flags))
-		{
-			ImGui::Text("In-world GUI element");
-			ImGui::Text("Window pos (%i, %i)", window_coords.x, window_coords.y);
-			ImGui::Text("World pos (%1.1f, %1.1f, %1.1f)", world_pos.x, world_pos.y, world_pos.z);
-			ImGui::End();
-		}
-		ImGui::PopStyleColor(2);
-	}
 }
 
 void Game::destroy()
@@ -574,4 +434,165 @@ void Game::updatePlayer(
 	camera.lookAt += movement;
 	camera.pos += movement;
 
+}
+
+void Game::renderGameInfoUI()
+{
+	ImGui::Begin("Game Info");
+
+	ImGui::Text("Drawcall count %i", drawcallCount);
+
+	if (ImGui::ColorEdit3("Light color", glm::value_ptr(pointlight.color), ImGuiColorEditFlags_NoInputs))
+	{
+	}
+
+	if (characterMesh)
+	{
+		ImGui::Separator();
+		ImGui::Text("Middle Character (controllable): Single Clip");
+
+		int curAnimIndex = middleCharacterAnimIndex;
+		std::string label = (curAnimIndex == -1 ? "Bind pose" : characterMesh->getAnimationName(curAnimIndex));
+
+		if (ImGui::BeginCombo("Clip##middle_animclip", label.c_str()))
+		{
+			const bool isSelected = (curAnimIndex == -1);
+
+			if (ImGui::Selectable("Bind pose", isSelected))
+				curAnimIndex = -1;
+
+			if (isSelected)
+				ImGui::SetItemDefaultFocus();
+
+			for (int i = 0; i < characterMesh->getNbrAnimations(); i++)
+			{
+				const bool isSelected = (curAnimIndex == i);
+				const auto label = characterMesh->getAnimationName(i) + "##" + std::to_string(i);
+
+				if (ImGui::Selectable(label.c_str(), isSelected))
+					curAnimIndex = i;
+
+				if (isSelected)
+					ImGui::SetItemDefaultFocus();
+			}
+
+			ImGui::EndCombo();
+		}
+
+		middleCharacterAnimIndex = curAnimIndex;
+		ImGui::SliderFloat("Animation speed##middle_speed", &characterAnimSpeed, 0.1f, 5.0f);
+	}
+
+	ImGui::Separator();
+	ImGui::Text("Left Character: 2-Clip Blend");
+	ImGui::Text("Idle (1) + Walking (2)");
+	ImGui::SliderFloat("Blend factor##left_blend", &leftCharacterAnimBlend, 0.0f, 1.0f);
+
+	ImGui::Separator();
+	ImGui::Text("Right Character: Filtered Blend");
+	ImGui::Text("Walking (2) + Waving (3)");
+	ImGui::Text("Branch root: mixamorig:Spine");
+	ImGui::Checkbox("Spine subtree uses waving", &rightCharacterSubtreeUsesWave);
+
+	ImGui::End();
+}
+
+void Game::renderCustomDebugUI()
+{
+	ImGui::Begin("Allan Custom Stuff");
+
+	ImGui::Text("Total Time Elapsed Since Start of Session: %0.2f Seconds", ImGui::GetTime());
+
+	renderHorseEntityUI();
+	renderNPCEntityUI();
+
+	ImGui::End();
+}
+
+void Game::renderHorseEntityUI()
+{
+	if (!ImGui::CollapsingHeader("Player Controlled Horse Entity Stuff"))
+		return;
+
+	auto& horseTransform = entity_registry->get<TransformComponent>(horseEntity);
+
+	ImGui::Text(
+		"Horse Entity Position: \n X: %f \n Y: %f \n Z: %f \n",
+		horseTransform.position.x,
+		horseTransform.position.y,
+		horseTransform.position.z
+	);
+
+	float uniformScale = horseTransform.scale.x;
+
+	if (ImGui::SliderFloat("Horse Scale##horse", &uniformScale, 0.0f, 0.1f, "%0.2f"))
+	{
+		horseTransform.scale = glm::vec3(uniformScale);
+	}
+
+	ImGui::SliderFloat("Horse Y Rotation##horse", &horseTransform.rotation.y, 0.0f, 360.0f, "%1.0f");
+
+	auto& horseAnimationComponent = entity_registry->get<AnimationComponent>(horseEntity);
+	renderAnimationControls("Horse", horseAnimationComponent, 10);
+}
+
+void Game::renderNPCEntityUI()
+{
+	if (!ImGui::CollapsingHeader("NPC Controlled Character Stuff"))
+		return;
+
+	auto& npcController = entity_registry->get<NPCControllerComponent>(npcEntity);
+
+	auto& npcAnimationComponent = entity_registry->get<AnimationComponent>(npcEntity);
+	renderAnimationControls("NPC", npcAnimationComponent, 3);
+
+	ImGui::SliderFloat("NPC Movement Speed##npc", &npcController.movementSpeed, 0.0f, 4.0f, "%0.1f");
+}
+
+void Game::renderInWorldHorseLabel()
+{
+	const auto VP_P_V = matrices.VP * matrices.P * matrices.V;
+	auto world_pos = glm::vec3(horseWorldMatrix[3]);
+
+	glm::ivec2 window_coords;
+
+	if (glm_aux::window_coords_from_world_pos(world_pos, VP_P_V, window_coords))
+	{
+		ImGui::SetNextWindowPos(
+			ImVec2{ float(window_coords.x), float(matrices.windowSize.y - window_coords.y) },
+			ImGuiCond_Always,
+			ImVec2{ 0.0f, 0.0f }
+		);
+
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, 0x80000000);
+		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
+
+		ImGuiWindowFlags flags =
+			ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoInputs |
+			ImGuiWindowFlags_AlwaysAutoResize;
+
+		if (ImGui::Begin("window_name", nullptr, flags))
+		{
+			ImGui::Text("In-world GUI element");
+			ImGui::Text("Window pos (%i, %i)", window_coords.x, window_coords.y);
+			ImGui::Text("World pos (%1.1f, %1.1f, %1.1f)", world_pos.x, world_pos.y, world_pos.z);
+			ImGui::End();
+		}
+
+		ImGui::PopStyleColor(2);
+	}
+}
+
+void Game::renderAnimationControls(const char* labelPrefix, AnimationComponent& animationComponent, int maxAnimationIndex)
+{
+	std::string id = std::string("##") + labelPrefix;
+
+	ImGui::SliderInt((std::string(labelPrefix) + " Primary Animation" + id).c_str(), &animationComponent.baseAnimation, 0, maxAnimationIndex);
+	ImGui::SliderInt((std::string(labelPrefix) + " Secondary Animation" + id).c_str(), &animationComponent.secondaryAnimation, 0, maxAnimationIndex);
+	ImGui::SliderFloat((std::string("Blend Factor") + id).c_str(), &animationComponent.blendFactor, 0.0f, 1.0f, "%0.2f");
+	ImGui::Checkbox((std::string("Use Speed Control") + id).c_str(), &animationComponent.useSpeedControl);
+	ImGui::SliderFloat((std::string(labelPrefix) + " Speed" + id).c_str(), &animationComponent.speed, 0.0f, 1.0f, "%0.2f");
+	ImGui::Checkbox((std::string("Use Layering") + id).c_str(), &animationComponent.useLayering);
+	ImGui::Checkbox((std::string("Draw Skeleton") + id).c_str(), &animationComponent.drawSkeleton);
 }
