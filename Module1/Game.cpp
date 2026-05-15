@@ -464,6 +464,23 @@ void Game::renderDebugShapes()
 	shapeRenderer->push_AABB(horse_aabb.min, horse_aabb.max);
 	shapeRenderer->push_AABB(grass_aabb.min, grass_aabb.max);
 	shapeRenderer->pop_states<ShapeRendering::Color4u>();
+
+	auto colliderView = entity_registry->view<TransformComponent, AABBColliderComponent>();
+
+	shapeRenderer->push_states(ShapeRendering::Color4u{ 0xFF00FFFF });
+
+	for (auto entity : colliderView)
+	{
+		auto& transform = colliderView.get<TransformComponent>(entity);
+		auto& aabb = colliderView.get<AABBColliderComponent>(entity);
+
+		glm::vec3 min = transform.position - aabb.halfExtents;
+		glm::vec3 max = transform.position + aabb.halfExtents;
+
+		shapeRenderer->push_AABB(min, max);
+	}
+
+	shapeRenderer->pop_states<ShapeRendering::Color4u>();
 }
 
 void Game::updateSceneState(float time)
@@ -489,7 +506,7 @@ void Game::updateSystems(float deltaTime, InputManagerPtr input)
 	playerControllerSystem.Update(*entity_registry, input);
 	npcControllerSystem.Update(*entity_registry);
 	movementSystem.Update(*entity_registry, deltaTime);
-	collisionSystem.Update(*entity_registry);
+	collisionSystem.Update(*entity_registry, eventQueue);
 	animationSystem.Update(*entity_registry, deltaTime);
 }
 

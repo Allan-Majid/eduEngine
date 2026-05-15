@@ -6,9 +6,47 @@
 #include <glm/geometric.hpp>
 #include <cmath>
 
-void CollisionSystem::Update(entt::registry& registry)
+void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 {
-	//TODO: Implement entity iteration
+	auto view = registry.view<TransformComponent, SphereColliderComponent, AABBColliderComponent>();
+
+	for (auto entityA : view)
+	{
+		auto& transformA = view.get<TransformComponent>(entityA);
+		auto& sphereA = view.get<SphereColliderComponent>(entityA);
+		auto& aabbA = view.get<AABBColliderComponent>(entityA);
+
+		if (TestSphereGroundPlane(transformA.position, sphereA.radius))
+		{
+			transformA.position.y = sphereA.radius;
+		}
+
+		for (auto entityB : view)
+		{
+			if (entityA == entityB || entityA > entityB)
+			{
+				continue;
+			}
+
+			auto& transformB = view.get<TransformComponent>(entityB);
+			auto& sphereB = view.get<SphereColliderComponent>(entityB);
+			auto& aabbB = view.get<AABBColliderComponent>(entityB);
+
+			bool possibleCollision = TestSphereSphere(transformA.position, sphereA.radius, transformB.position, sphereB.radius);
+
+			if (!possibleCollision)
+			{
+				continue;
+			}
+
+			bool actualCollision = TestAABBAABB(transformA.position, aabbA.halfExtents, transformB.position, aabbB.halfExtents);
+
+			if (actualCollision)
+			{
+				eventQueue.EnqueueEvent({ GameEventType::TriggerEntered,entityA,entityB,"Horse entered grazing area" });
+			}
+		}
+	}
 }
 
 bool CollisionSystem::TestSphereSphere(const glm::vec3& centerA, float radiusA, const glm::vec3& centerB, float radiusB)

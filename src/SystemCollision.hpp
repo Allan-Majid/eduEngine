@@ -2,6 +2,8 @@
 
 #include <entt/entt.hpp>
 #include <glm/vec3.hpp>
+#include "EventQueue.hpp"
+
 
 struct SphereColliderComponent;
 struct AABBColliderComponent;
@@ -10,7 +12,7 @@ struct TransformComponent;
 class CollisionSystem
 {
 public:
-	void Update(entt::registry& registry);
+	void Update(entt::registry& registry, EventQueue& eventQueue);
 
 private:
 	bool TestSphereSphere(const glm::vec3& centerA, float radiusA, const glm::vec3& centerB, float radiusB);
