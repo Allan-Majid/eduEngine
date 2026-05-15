@@ -4,4 +4,5 @@ struct SphereColliderComponent
 {
 	float radius = 1.0f;
 	bool isTrigger = false;
+	bool isStatic = false;
 };

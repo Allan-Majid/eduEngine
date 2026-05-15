@@ -85,8 +85,22 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 
 		if (overlap > 0.0f)
 		{
-			transformA.position += direction * (overlap * 0.5f);
-			transformB.position -= direction * (overlap * 0.5f);
+			bool staticA = sphereA.isStatic;
+			bool staticB = sphereB.isStatic;
+
+			if (!staticA && !staticB)
+			{
+				transformA.position += direction * (overlap * 0.5f);
+				transformB.position -= direction * (overlap * 0.5f);
+			}
+			else if (!staticA && staticB)
+			{
+				transformA.position += direction * overlap;
+			}
+			else if (staticA && !staticB)
+			{
+				transformB.position -= direction * overlap;
+			}
 		}
 
 		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision resolved" });
