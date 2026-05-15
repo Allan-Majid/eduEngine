@@ -43,7 +43,40 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 
 			if (actualCollision)
 			{
-				eventQueue.EnqueueEvent({ GameEventType::TriggerEntered,entityA,entityB,"Horse entered grazing area" });
+				bool bothAreTriggers = sphereA.isTrigger && sphereB.isTrigger;
+				bool oneIsTrigger = sphereA.isTrigger || sphereB.isTrigger;
+
+				if (bothAreTriggers)
+				{
+					continue;
+				}
+
+				if (oneIsTrigger)
+				{
+					eventQueue.EnqueueEvent({ GameEventType::TriggerEntered, entityA, entityB, "Trigger entered" });
+					continue;
+				}
+
+				glm::vec3 direction = transformA.position - transformB.position;
+
+				if (glm::length(direction) == 0.0f)
+				{
+					direction = { 1.0f, 0.0f, 0.0f };
+				}
+				else
+				{
+					direction = glm::normalize(direction);
+				}
+
+				float overlap = (sphereA.radius + sphereB.radius) - glm::length(transformA.position - transformB.position);
+
+				if (overlap > 0.0f)
+				{
+					transformA.position += direction * (overlap * 0.5f);
+					transformB.position -= direction * (overlap * 0.5f);
+				}
+
+				eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision resolved" });
 			}
 		}
 	}
