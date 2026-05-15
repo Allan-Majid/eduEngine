@@ -14,6 +14,7 @@
 #include "SystemAnimation.hpp"
 #include "DebugEventListener.hpp"
 #include "EventQueue.hpp"
+#include "SystemCollision.hpp"
 
 struct AnimationComponent;
 
@@ -55,13 +56,7 @@ private:
     /// @brief For rendering of GUI elements
     void renderUI();
 
-	// Helper methods for rendering different UI windows
-    void renderGameInfoUI();
-    void renderCustomDebugUI();
-    void renderHorseEntityUI();
-    void renderNPCEntityUI();
-    void renderAnimationControls(const char* labelPrefix, AnimationComponent& animationComponent, int maxAnimationIndex);
-    void renderInWorldHorseLabel();
+    CollisionSystem collisionSystem;
 
 	// System for updating entity positions based on their velocity components
 	MovementSystem movementSystem;
@@ -77,6 +72,14 @@ private:
 
 	// System for updating animated meshes based on their animation state
 	AnimationSystem animationSystem;
+
+	// Helper methods for rendering different UI windows
+    void renderGameInfoUI();
+    void renderCustomDebugUI();
+    void renderHorseEntityUI();
+    void renderNPCEntityUI();
+    void renderAnimationControls(const char* labelPrefix, AnimationComponent& animationComponent, int maxAnimationIndex);
+    void renderInWorldHorseLabel();
 
     //helper methods for Game::init
     void initRenderers();

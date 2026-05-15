@@ -203,6 +203,8 @@ add_executable(Module1
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Log.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemMovement.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemRender.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemAnimation.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemCollision.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Module1/SystemPlayerController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Module1/SystemNPCController.cpp
     )

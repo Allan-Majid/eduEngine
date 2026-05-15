@@ -10,6 +10,8 @@
 #include "ComponentPlayerController.hpp"
 #include "ComponentNPCController.hpp"
 #include "ComponentAnimation.hpp"
+#include "ComponentSphereCollider.hpp"
+#include "ComponentAABBCollider.hpp"
 
 
 bool Game::init()
@@ -460,6 +462,7 @@ void Game::updateSystems(float deltaTime, InputManagerPtr input)
 	playerControllerSystem.Update(*entity_registry, input);
 	npcControllerSystem.Update(*entity_registry);
 	movementSystem.Update(*entity_registry, deltaTime);
+	collisionSystem.Update(*entity_registry);
 	animationSystem.Update(*entity_registry, deltaTime);
 }
 
