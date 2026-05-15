@@ -89,6 +89,7 @@ private:
     void initWorldMatrices();
     void createHorseEntity();
     void createNPCEntity();
+    void createWallTestEntity();
     void createQuestAreaEntity();
     void logEntitySetup();
 
@@ -111,6 +112,8 @@ private:
     //entities
 
     entt::entity questAreaEntity;
+
+    entt::entity wallTestEntity;
 
     entt::entity horseEntity;
 

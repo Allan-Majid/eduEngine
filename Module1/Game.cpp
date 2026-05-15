@@ -24,7 +24,8 @@ bool Game::init()
 	initWorldMatrices();
 	createHorseEntity();
 	createNPCEntity();
-	createQuestAreaEntity();
+	//createQuestAreaEntity();
+	createWallTestEntity();
 	logEntitySetup();
 
 	return true;
@@ -368,22 +369,39 @@ void Game::createHorseEntity()
 	horseAABB.isTrigger = false;
 }
 
-void Game::createQuestAreaEntity()
+//void Game::createQuestAreaEntity()
+//{
+//	questAreaEntity = entity_registry->create();
+//
+//	auto& questTransform = entity_registry->emplace<TransformComponent>(questAreaEntity);
+//	questTransform.position = { 10.0f, 0.0f, -20.0f };
+//	questTransform.rotation = { 0.0f, 0.0f, 0.0f };
+//	questTransform.scale = { 1.0f, 1.0f, 1.0f };
+//
+//	auto& questSphere = entity_registry->emplace<SphereColliderComponent>(questAreaEntity);
+//	questSphere.radius = 3.0f;
+//	questSphere.isTrigger = true;
+//
+//	auto& questAABB = entity_registry->emplace<AABBColliderComponent>(questAreaEntity);
+//	questAABB.halfExtents = { 3.0f, 1.0f, 3.0f };
+//	questAABB.isTrigger = true;
+//}
+
+void Game::createWallTestEntity()
 {
-	questAreaEntity = entity_registry->create();
+	wallTestEntity = entity_registry->create();
 
-	auto& questTransform = entity_registry->emplace<TransformComponent>(questAreaEntity);
-	questTransform.position = { 10.0f, 0.0f, -20.0f };
-	questTransform.rotation = { 0.0f, 0.0f, 0.0f };
-	questTransform.scale = { 1.0f, 1.0f, 1.0f };
+	auto& wallTransform = entity_registry->emplace<TransformComponent>(wallTestEntity);
+	wallTransform.position = { 10.0f, 0.0f, -20.0f };
+	wallTransform.rotation = { 0.0f, 0.0f, 0.0f };
+	wallTransform.scale = { 1.0f, 1.0f, 1.0f };
 
-	auto& questSphere = entity_registry->emplace<SphereColliderComponent>(questAreaEntity);
-	questSphere.radius = 3.0f;
-	questSphere.isTrigger = true;
-
-	auto& questAABB = entity_registry->emplace<AABBColliderComponent>(questAreaEntity);
-	questAABB.halfExtents = { 3.0f, 1.0f, 3.0f };
-	questAABB.isTrigger = true;
+	auto& wallSphere = entity_registry->emplace<SphereColliderComponent>(wallTestEntity);
+	wallSphere.radius = 3.0f;
+	wallSphere.isTrigger = false;
+	auto& wallAABB = entity_registry->emplace<AABBColliderComponent>(wallTestEntity);
+	wallAABB.halfExtents = { 3.0f, 1.0f, 3.0f };
+	wallAABB.isTrigger = false;
 }
 
 void Game::createNPCEntity()
@@ -412,6 +430,14 @@ void Game::createNPCEntity()
 	npcAnimationComponent.blendFactor = 0.7f;
 	npcAnimationComponent.useLayering = true;
 	npcAnimationComponent.upperBodyRootNode = "mixamorig:Spine";
+
+	auto& npcSphere = entity_registry->emplace<SphereColliderComponent>(npcEntity);
+	npcSphere.radius = 2.0f;
+	npcSphere.isTrigger = false;
+
+	auto& npcAABB = entity_registry->emplace<AABBColliderComponent>(npcEntity);
+	npcAABB.halfExtents = { 1.5f, 1.0f, 2.5f };
+	npcAABB.isTrigger = false;
 }
 
 void Game::logEntitySetup()
@@ -515,3 +541,5 @@ void Game::updateInputAndCamera(float deltaTime, InputManagerPtr input)
 	updateCamera(input);
 	updatePlayer(deltaTime, input);
 }
+
+
