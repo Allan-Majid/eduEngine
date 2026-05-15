@@ -89,6 +89,7 @@ private:
     void initWorldMatrices();
     void createHorseEntity();
     void createNPCEntity();
+    void createQuestAreaEntity();
     void logEntitySetup();
 
 	//helper methods for rendering
@@ -106,6 +107,10 @@ private:
 
     // Immediate-mode renderer for basic 2D or 3D primitives
     ShapeRendererPtr shapeRenderer;
+
+    //entities
+
+    entt::entity questAreaEntity;
 
     entt::entity horseEntity;
 

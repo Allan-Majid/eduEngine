@@ -24,6 +24,7 @@ bool Game::init()
 	initWorldMatrices();
 	createHorseEntity();
 	createNPCEntity();
+	createQuestAreaEntity();
 	logEntitySetup();
 
 	return true;
@@ -357,6 +358,32 @@ void Game::createHorseEntity()
 	horseAnimation.blendFactor = 0.0f;
 	horseAnimation.useLayering = false;
 	horseAnimation.upperBodyRootNode = "";
+
+	auto& horseSphere = entity_registry->emplace<SphereColliderComponent>(horseEntity);
+	horseSphere.radius = 2.0f;
+	horseSphere.isTrigger = false;
+
+	auto& horseAABB = entity_registry->emplace<AABBColliderComponent>(horseEntity);
+	horseAABB.halfExtents = { 1.5f, 1.0f, 2.5f };
+	horseAABB.isTrigger = false;
+}
+
+void Game::createQuestAreaEntity()
+{
+	questAreaEntity = entity_registry->create();
+
+	auto& questTransform = entity_registry->emplace<TransformComponent>(questAreaEntity);
+	questTransform.position = { 10.0f, 0.0f, -20.0f };
+	questTransform.rotation = { 0.0f, 0.0f, 0.0f };
+	questTransform.scale = { 1.0f, 1.0f, 1.0f };
+
+	auto& questSphere = entity_registry->emplace<SphereColliderComponent>(questAreaEntity);
+	questSphere.radius = 3.0f;
+	questSphere.isTrigger = true;
+
+	auto& questAABB = entity_registry->emplace<AABBColliderComponent>(questAreaEntity);
+	questAABB.halfExtents = { 3.0f, 1.0f, 3.0f };
+	questAABB.isTrigger = true;
 }
 
 void Game::createNPCEntity()

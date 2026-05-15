@@ -31,10 +31,10 @@ bool CollisionSystem::TestAABBAABB(const glm::vec3& centerA, const glm::vec3& ha
 
 bool CollisionSystem::TestSphereGroundPlane(const glm::vec3& center, float radius)
 {
-	return center.y - radius < 0.0f;
+	return center.y - radius <= 0.0f;
 }
 
 bool CollisionSystem::TestAABBGroundPlane(const glm::vec3& center, const glm::vec3& halfExtents)
 {
-	return center.y - halfExtents.y < 0.0f;
+	return center.y - halfExtents.y <= 0.0f;
 }
