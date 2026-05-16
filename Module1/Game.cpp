@@ -531,7 +531,7 @@ void Game::updateSceneState(float time)
 
 void Game::updateSystems(float deltaTime, InputManagerPtr input)
 {
-	playerControllerSystem.Update(*entity_registry, input);
+	playerControllerSystem.Update(*entity_registry, deltaTime, camera.yaw, input);
 	npcControllerSystem.Update(*entity_registry);
 	movementSystem.Update(*entity_registry, deltaTime);
 	collisionSystem.Update(*entity_registry, eventQueue);
