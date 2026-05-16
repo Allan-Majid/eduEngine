@@ -22,6 +22,7 @@ bool Game::init()
 	initEventSystem();
 	loadMeshes();
 	initWorldMatrices();
+	createPlayerEntity();
 	createHorseEntity();
 	createNPCEntity();
 	//createQuestAreaEntity();
@@ -327,6 +328,20 @@ void Game::loadMeshes()
 	characterMesh->load("assets/Amy/walking.fbx", true);
 	characterMesh->load("assets/Amy/waving.fbx", true);
 	characterMesh->removeTranslationKeys("mixamorig:Hips");
+
+	playerMesh = std::make_shared<eeng::RenderableMesh>();
+	playerMesh->load("assets/Amy/Ch46_nonPBR.fbx");
+	playerMesh->load("assets/Amy/idle.fbx", true);
+	playerMesh->load("assets/Amy/walking.fbx", true);
+	playerMesh->load("assets/Amy/waving.fbx", true);
+	playerMesh->removeTranslationKeys("mixamorig:Hips");
+
+	npcMesh = std::make_shared<eeng::RenderableMesh>();
+	npcMesh->load("assets/Amy/Ch46_nonPBR.fbx");
+	npcMesh->load("assets/Amy/idle.fbx", true);
+	npcMesh->load("assets/Amy/walking.fbx", true);
+	npcMesh->load("assets/Amy/waving.fbx", true);
+	npcMesh->removeTranslationKeys("mixamorig:Hips");
 }
 
 void Game::initWorldMatrices()
@@ -335,15 +350,56 @@ void Game::initWorldMatrices()
 	horseWorldMatrix = glm_aux::TRS({ 30.0f, 0.0f, -35.0f }, 35.0f, { 0, 1, 0 }, { 0.01f, 0.01f, 0.01f });
 }
 
-void Game::createHorseEntity()
+void Game::createPlayerEntity()
 {
-	horseEntity = entity_registry->create();
+	playerEntity = entity_registry->create();
 
-	auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
+	auto& playerController = entity_registry->emplace<PlayerControllerComponent>(playerEntity);
 	playerController.movementSpeed = 10.0f;
 	playerController.currentSpeed = 0.0f;
 	playerController.acceleration = 8.0f;
 	playerController.deceleration = 3.0f;
+
+	auto& playerTransform = entity_registry->emplace<TransformComponent>(playerEntity);
+	playerTransform.position = { 0.0f, 0.0f, 0.0f };
+	playerTransform.rotation = { 0.0f, 0.0f, 0.0f };
+	playerTransform.scale = { 0.03f, 0.03f, 0.03f };
+
+	auto& playerMeshComponent = entity_registry->emplace<MeshComponent>(playerEntity);
+	playerMeshComponent.mesh = playerMesh;
+
+	auto& playerVelocity = entity_registry->emplace<LinearVelocityComponent>(playerEntity);
+	playerVelocity.velocity = { 0.0f, 0.0f, 0.0f };
+
+	auto& playerAnimation = entity_registry->emplace<AnimationComponent>(playerEntity);
+	playerAnimation.baseAnimation = 1;
+	playerAnimation.secondaryAnimation = 2;
+	playerAnimation.blendFactor = 0.0f;
+	playerAnimation.useSpeedControl = true;
+	playerAnimation.speed = 0.0f;
+	playerAnimation.maxSpeedForFullBlend = 4.0f;
+	playerAnimation.useLayering = false;
+	playerAnimation.upperBodyRootNode = "mixamorig:Spine";
+
+	auto& playerSphere = entity_registry->emplace<SphereColliderComponent>(playerEntity);
+	playerSphere.radius = 1.5f;
+	playerSphere.isTrigger = false;
+
+	auto& playerAABB = entity_registry->emplace<AABBColliderComponent>(playerEntity);
+	playerAABB.halfExtents = { 0.6f, 1.5f, 0.6f };
+	playerAABB.isTrigger = false;
+	
+}
+
+void Game::createHorseEntity()
+{
+	horseEntity = entity_registry->create();
+
+	/*auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
+	playerController.movementSpeed = 10.0f;
+	playerController.currentSpeed = 0.0f;
+	playerController.acceleration = 8.0f;
+	playerController.deceleration = 3.0f;*/
 
 	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
 	horseTransform.position = { 0.0f, 0.0f, -35.0f };
@@ -421,8 +477,8 @@ void Game::createNPCEntity()
 	npcTransform.rotation = { 0.0f, 0.0f, 0.0f };
 	npcTransform.scale = { 0.03f, 0.03f, 0.03f };
 
-	auto& npcMesh = entity_registry->emplace<MeshComponent>(npcEntity);
-	npcMesh.mesh = characterMesh;
+	auto& npcMeshComponent = entity_registry->emplace<MeshComponent>(npcEntity);
+	npcMeshComponent.mesh = npcMesh;
 
 	auto& npcVelocity = entity_registry->emplace<LinearVelocityComponent>(npcEntity);
 	npcVelocity.velocity = { 0.0f, 0.0f, 0.0f };
@@ -549,17 +605,17 @@ void Game::updateInputAndCamera(float deltaTime, InputManagerPtr input)
 {
 	//updateCamera(input);
 	//updatePlayer(deltaTime, input);
-	updateHorseCamera(input);
+	updatePlayerCamera(input);
 }
 
-void Game::updateHorseCamera(InputManagerPtr input)
+void Game::updatePlayerCamera(InputManagerPtr input)
 {
-	if (!entity_registry->valid(horseEntity) || !entity_registry->all_of<TransformComponent>(horseEntity))
+	if (!entity_registry->valid(playerEntity) || !entity_registry->all_of<TransformComponent>(playerEntity))
 	{
 		return;
 	}
 
-	auto& horseTransform = entity_registry->get<TransformComponent>(horseEntity);
+	auto& playerTransform = entity_registry->get<TransformComponent>(playerEntity);
 
 	auto mouse = input->GetMouseState();
 	glm::ivec2 mouseXY{ mouse.x, mouse.y };
@@ -576,8 +632,8 @@ void Game::updateHorseCamera(InputManagerPtr input)
 	camera.pitch += mouseXYDiff.y * camera.sensitivity;
 	camera.pitch = glm::clamp(camera.pitch, -glm::radians(89.0f), glm::radians(20.0f));
 
-	glm::vec3 horsePosition = horseTransform.position;
-	glm::vec3 cameraTarget = horsePosition + glm::vec3(0.0f, 4.5f, 0.0f);
+	glm::vec3 playerPosition = playerTransform.position;
+	glm::vec3 cameraTarget = playerPosition + glm::vec3(0.0f, 4.5f, 0.0f);
 	camera.distance = 8.0f;
 
 	const glm::vec4 rotatedOffset = glm_aux::R(camera.yaw, camera.pitch) * glm::vec4(0.0f, 0.0f, camera.distance, 1.0f);

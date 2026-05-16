@@ -88,6 +88,7 @@ private:
     void loadMeshes();
     void initWorldMatrices();
     void createHorseEntity();
+    void createPlayerEntity();
     void createNPCEntity();
     void createWallTestEntity();
     void createQuestAreaEntity();
@@ -100,7 +101,7 @@ private:
 
 	//helper methods for updating
     void updateInputAndCamera(float deltaTime, InputManagerPtr input);
-    void updateHorseCamera(InputManagerPtr input);
+    void updatePlayerCamera(InputManagerPtr input);
     void updateSystems(float deltaTime, InputManagerPtr input);
     void updateSceneState(float time);
 
@@ -111,6 +112,8 @@ private:
     ShapeRendererPtr shapeRenderer;
 
     //entities
+
+    entt::entity playerEntity;
 
     entt::entity questAreaEntity;
 
@@ -170,7 +173,7 @@ private:
     } player;
 
     // Game meshes
-    std::shared_ptr<eeng::RenderableMesh> grassMesh, horseMesh, characterMesh;
+    std::shared_ptr<eeng::RenderableMesh> grassMesh, horseMesh, characterMesh, playerMesh, npcMesh;
 
     // Game entity transformations
     glm::mat4 characterWorldMatrix1, characterWorldMatrix2, characterWorldMatrix3;
