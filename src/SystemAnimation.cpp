@@ -49,13 +49,11 @@ void AnimationSystem::UpdateSpeedControl(entt::registry& registry, entt::entity 
 		movementSpeed = glm::length(velocityComponent->velocity);
 	}
 
-	float animationWalkSpeed = 4.0f;
+	float animationWalkSpeed = 10.0f;
 	float targetSpeed = std::clamp(movementSpeed / animationWalkSpeed, 0.0f, 1.0f);
 
 	animationComponent.speed = glm::mix(animationComponent.speed, targetSpeed, 0.1f);
 
-	animationComponent.baseAnimation = 1;
-	animationComponent.secondaryAnimation = 2;
 	animationComponent.blendFactor = animationComponent.speed;
 }
 

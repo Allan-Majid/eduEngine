@@ -340,7 +340,10 @@ void Game::createHorseEntity()
 	horseEntity = entity_registry->create();
 
 	auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
-	playerController.movementSpeed = 6.0f;
+	playerController.movementSpeed = 10.0f;
+	playerController.currentSpeed = 0.0f;
+	playerController.acceleration = 8.0f;
+	playerController.deceleration = 3.0f;
 
 	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
 	horseTransform.position = { 0.0f, 0.0f, -35.0f };
@@ -351,12 +354,15 @@ void Game::createHorseEntity()
 	horseMeshComponent.mesh = horseMesh;
 
 	auto& horseVelocity = entity_registry->emplace<LinearVelocityComponent>(horseEntity);
-	horseVelocity.velocity = { 1.0f, 0.0f, 0.0f };
+	horseVelocity.velocity = { 0.0f, 0.0f, 0.0f };
 
 	auto& horseAnimation = entity_registry->emplace<AnimationComponent>(horseEntity);
-	horseAnimation.baseAnimation = 9;
-	horseAnimation.secondaryAnimation = 2;
+	horseAnimation.baseAnimation = 3;
+	horseAnimation.secondaryAnimation = 9;
 	horseAnimation.blendFactor = 0.0f;
+	horseAnimation.useSpeedControl = true;
+	horseAnimation.speed = 0.0f;
+	horseAnimation.maxSpeedForFullBlend = 10.0f;
 	horseAnimation.useLayering = false;
 	horseAnimation.upperBodyRootNode = "";
 
@@ -429,6 +435,7 @@ void Game::createNPCEntity()
 	auto& npcAnimationComponent = entity_registry->emplace<AnimationComponent>(npcEntity);
 	npcAnimationComponent.baseAnimation = 2;
 	npcAnimationComponent.secondaryAnimation = 3;
+	npcAnimationComponent.maxSpeedForFullBlend = npcController.movementSpeed;
 	npcAnimationComponent.blendFactor = 0.7f;
 	npcAnimationComponent.useLayering = true;
 	npcAnimationComponent.upperBodyRootNode = "mixamorig:Spine";

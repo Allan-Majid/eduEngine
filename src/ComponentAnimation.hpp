@@ -14,6 +14,7 @@ struct AnimationComponent
 
 	bool useSpeedControl = false;
 	float speed = 0.0f;
+	float maxSpeedForFullBlend = 10.0f;
 
 	bool drawSkeleton = false;
 };
