@@ -386,7 +386,8 @@ void Game::createPlayerEntity()
 	playerSphere.isTrigger = false;
 
 	auto& playerAABB = entity_registry->emplace<AABBColliderComponent>(playerEntity);
-	playerAABB.halfExtents = { 0.6f, 1.5f, 0.6f };
+	playerAABB.halfExtents = { 1.0f, 2.2f, 1.0f };
+	playerAABB.offset = { 0.0f, 2.2f, 0.0f };
 	playerAABB.isTrigger = false;
 	
 }
@@ -394,12 +395,6 @@ void Game::createPlayerEntity()
 void Game::createHorseEntity()
 {
 	horseEntity = entity_registry->create();
-
-	/*auto& playerController = entity_registry->emplace<PlayerControllerComponent>(horseEntity);
-	playerController.movementSpeed = 10.0f;
-	playerController.currentSpeed = 0.0f;
-	playerController.acceleration = 8.0f;
-	playerController.deceleration = 3.0f;*/
 
 	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
 	horseTransform.position = { 0.0f, 0.0f, -35.0f };
@@ -427,7 +422,8 @@ void Game::createHorseEntity()
 	horseSphere.isTrigger = false;
 
 	auto& horseAABB = entity_registry->emplace<AABBColliderComponent>(horseEntity);
-	horseAABB.halfExtents = { 1.5f, 1.0f, 2.5f };
+	horseAABB.halfExtents = { 1.5f, 2.5f, 3.2f };
+	horseAABB.offset = { 0.0f, 2.4f, -0.6f };
 	horseAABB.isTrigger = false;
 }
 
@@ -501,7 +497,8 @@ void Game::createNPCEntity()
 	npcSphere.isTrigger = false;
 
 	auto& npcAABB = entity_registry->emplace<AABBColliderComponent>(npcEntity);
-	npcAABB.halfExtents = { 1.5f, 1.0f, 2.5f };
+	npcAABB.halfExtents = { 1.0f, 2.2f, 1.0f };
+	npcAABB.offset = { 0.0f, 2.2f, 0.0f };
 	npcAABB.isTrigger = false;
 }
 
@@ -565,8 +562,10 @@ void Game::renderDebugShapes()
 		auto& transform = colliderView.get<TransformComponent>(entity);
 		auto& aabb = colliderView.get<AABBColliderComponent>(entity);
 
-		glm::vec3 min = transform.position - aabb.halfExtents;
-		glm::vec3 max = transform.position + aabb.halfExtents;
+		glm::vec3 center = transform.position + aabb.offset;
+
+		glm::vec3 min = center - aabb.halfExtents;
+		glm::vec3 max = center + aabb.halfExtents;
 
 		shapeRenderer->push_AABB(min, max);
 	}
