@@ -82,7 +82,11 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 
 		if (oneIsTrigger)
 		{
-			eventQueue.EnqueueEvent({ GameEventType::TriggerEntered, entityA, entityB, "Trigger entered" });
+			entt::entity triggerEntity = sphereA.isTrigger ? entityA : entityB;
+			entt::entity colliderEntity = sphereA.isTrigger ? entityB : entityA;
+
+			eventQueue.EnqueueEvent({ GameEventType::TriggerEntered, triggerEntity, colliderEntity, "Trigger entered" });
+
 			continue;
 		}
 
@@ -121,7 +125,8 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 			delete collisionData;
 		}
 
-		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision resolved" });
+		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision detected" });
+		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityB, entityA, "Collision detected" });
 	}
 
 	DeleteBVH(bvhRoot);

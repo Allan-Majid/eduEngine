@@ -640,6 +640,7 @@ void Game::updateSystems(float deltaTime, InputManagerPtr input)
 	movementSystem.Update(*entity_registry, deltaTime);
 	collisionSystem.Update(*entity_registry, eventQueue);
 	animationSystem.Update(*entity_registry, deltaTime);
+	questSystem.UpdateQuestProgress(*entity_registry, deltaTime, input, playerEntity, horseEntity);
 }
 
 void Game::updateInputAndCamera(float deltaTime, InputManagerPtr input)

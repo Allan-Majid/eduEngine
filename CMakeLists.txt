@@ -205,6 +205,7 @@ add_executable(Module1
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemRender.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemAnimation.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemCollision.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SystemQuest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Module1/SystemPlayerController.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Module1/SystemNPCController.cpp
     )
