@@ -100,6 +100,7 @@ private:
 
 	//helper methods for updating
     void updateInputAndCamera(float deltaTime, InputManagerPtr input);
+    void updateHorseCamera(InputManagerPtr input);
     void updateSystems(float deltaTime, InputManagerPtr input);
     void updateSceneState(float time);
 

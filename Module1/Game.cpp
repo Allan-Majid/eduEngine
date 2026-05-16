@@ -344,8 +344,8 @@ void Game::createHorseEntity()
 
 	auto& horseTransform = entity_registry->emplace<TransformComponent>(horseEntity);
 	horseTransform.position = { 0.0f, 0.0f, -35.0f };
-	horseTransform.rotation = { 0.0f, 270.0f, 0.0f };
-	horseTransform.scale = { 0.03f, 0.03f, 0.03f };
+	horseTransform.rotation = { 0.0f, 180.0f, 0.0f };
+	horseTransform.scale = { 0.01f, 0.01f, 0.01f };
 
 	auto& horseMeshComponent = entity_registry->emplace<MeshComponent>(horseEntity);
 	horseMeshComponent.mesh = horseMesh;
@@ -354,7 +354,7 @@ void Game::createHorseEntity()
 	horseVelocity.velocity = { 1.0f, 0.0f, 0.0f };
 
 	auto& horseAnimation = entity_registry->emplace<AnimationComponent>(horseEntity);
-	horseAnimation.baseAnimation = 4;
+	horseAnimation.baseAnimation = 9;
 	horseAnimation.secondaryAnimation = 2;
 	horseAnimation.blendFactor = 0.0f;
 	horseAnimation.useLayering = false;
@@ -540,8 +540,43 @@ void Game::updateSystems(float deltaTime, InputManagerPtr input)
 
 void Game::updateInputAndCamera(float deltaTime, InputManagerPtr input)
 {
-	updateCamera(input);
-	updatePlayer(deltaTime, input);
+	//updateCamera(input);
+	//updatePlayer(deltaTime, input);
+	updateHorseCamera(input);
+}
+
+void Game::updateHorseCamera(InputManagerPtr input)
+{
+	if (!entity_registry->valid(horseEntity) || !entity_registry->all_of<TransformComponent>(horseEntity))
+	{
+		return;
+	}
+
+	auto& horseTransform = entity_registry->get<TransformComponent>(horseEntity);
+
+	auto mouse = input->GetMouseState();
+	glm::ivec2 mouseXY{ mouse.x, mouse.y };
+	glm::ivec2 mouseXYDiff{ 0, 0 };
+
+	if (mouse.leftButton && camera.mouse_xy_prev.x >= 0)
+	{
+		mouseXYDiff = camera.mouse_xy_prev - mouseXY;
+	}
+
+	camera.mouse_xy_prev = mouseXY;
+
+	camera.yaw += mouseXYDiff.x * camera.sensitivity;
+	camera.pitch += mouseXYDiff.y * camera.sensitivity;
+	camera.pitch = glm::clamp(camera.pitch, -glm::radians(89.0f), glm::radians(20.0f));
+
+	glm::vec3 horsePosition = horseTransform.position;
+	glm::vec3 cameraTarget = horsePosition + glm::vec3(0.0f, 4.5f, 0.0f);
+	camera.distance = 8.0f;
+
+	const glm::vec4 rotatedOffset = glm_aux::R(camera.yaw, camera.pitch) * glm::vec4(0.0f, 0.0f, camera.distance, 1.0f);
+
+	camera.lookAt = cameraTarget;
+	camera.pos = cameraTarget + glm::vec3(rotatedOffset);
 }
 
 
