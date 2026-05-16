@@ -22,7 +22,16 @@ void AnimationSystem::Update(entt::registry& registry, float deltaTime)
 			continue;
 		}
 
-		animationComponent.time += deltaTime;
+		if (!animationComponent.animationFinished)
+		{
+			animationComponent.time += deltaTime;
+
+			if (animationComponent.playOnce && animationComponent.time >= animationComponent.animationDuration)
+			{
+				animationComponent.time = animationComponent.animationDuration;
+				animationComponent.animationFinished = true;
+			}
+		}
 
 		if (animationComponent.useLayering)
 		{

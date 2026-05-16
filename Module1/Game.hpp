@@ -15,6 +15,7 @@
 #include "DebugEventListener.hpp"
 #include "EventQueue.hpp"
 #include "SystemCollision.hpp"
+#include "SystemQuest.hpp"
 
 struct AnimationComponent;
 
@@ -73,6 +74,11 @@ private:
 	// System for updating animated meshes based on their animation state
 	AnimationSystem animationSystem;
 
+	// System for handling quest-related logic
+    QuestSystem questSystem;
+    entt::entity foodTriggerEntity = entt::null;
+    entt::entity horseTriggerEntity = entt::null;
+
 	// Helper methods for rendering different UI windows
     void renderGameInfoUI();
     void renderCustomDebugUI();
@@ -88,6 +94,8 @@ private:
     void loadMeshes();
     void initWorldMatrices();
     void createHorseEntity();
+    void createQuestTriggerEntities();
+    void renderQuestObjectiveWindow();
     void createPlayerEntity();
     void createNPCEntity();
     void createWallTestEntity();

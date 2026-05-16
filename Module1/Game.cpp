@@ -25,7 +25,7 @@ bool Game::init()
 	createPlayerEntity();
 	createHorseEntity();
 	createNPCEntity();
-	//createQuestAreaEntity();
+	createQuestTriggerEntities();
 	createWallTestEntity();
 	logEntitySetup();
 
@@ -70,6 +70,7 @@ void Game::renderUI()
 	renderGameInfoUI();
 	renderCustomDebugUI();
 	renderInWorldHorseLabel();
+	renderQuestObjectiveWindow();
 
 }
 
@@ -203,6 +204,24 @@ void Game::renderCustomDebugUI()
 	renderHorseEntityUI();
 	renderNPCEntityUI();
 
+	ImGui::Separator();
+	ImGui::Text("Quest");
+	ImGui::Text("Has Food: %s", questSystem.hasFood ? "true" : "false");
+	ImGui::Text("Horse Fed: %s", questSystem.horseFed ? "true" : "false");
+
+	if (!questSystem.hasFood)
+	{
+		ImGui::Text("Objective: Find food for the horse");
+	}
+	else if (!questSystem.horseFed)
+	{
+		ImGui::Text("Objective: Bring the food to the horse");
+	}
+	else
+	{
+		ImGui::Text("Objective: Quest completed");
+	}
+
 	ImGui::End();
 }
 
@@ -311,6 +330,7 @@ void Game::initRegistry()
 void Game::initEventSystem()
 {
 	debugListenerId = eventQueue.RegisterListener([this](const GameEvent& event) { debugEventListener.OnNotify(event); });
+	eventQueue.RegisterListener([this](const GameEvent& event) { questSystem.Update(*entity_registry, event, playerEntity, foodTriggerEntity, horseTriggerEntity, horseEntity); });
 	eventQueue.EnqueueEvent({ GameEventType::DebugMessage, entt::null, entt::null, "Event system initialized" });
 }
 
@@ -361,7 +381,7 @@ void Game::createPlayerEntity()
 	playerController.deceleration = 3.0f;
 
 	auto& playerTransform = entity_registry->emplace<TransformComponent>(playerEntity);
-	playerTransform.position = { 0.0f, 0.0f, 0.0f };
+	playerTransform.position = { 0.0f, 0.0f, -20.0f };
 	playerTransform.rotation = { 0.0f, 0.0f, 0.0f };
 	playerTransform.scale = { 0.03f, 0.03f, 0.03f };
 
@@ -661,6 +681,66 @@ void Game::updatePlayerCamera(InputManagerPtr input)
 
 	camera.lookAt = cameraTarget;
 	camera.pos = cameraTarget + glm::vec3(rotatedOffset);
+}
+
+void Game::createQuestTriggerEntities()
+{
+	foodTriggerEntity = entity_registry->create();
+
+	auto& foodTransform = entity_registry->emplace<TransformComponent>(foodTriggerEntity);
+	foodTransform.position = { 8.0f, 0.0f, -8.0f };
+	foodTransform.rotation = { 0.0f, 0.0f, 0.0f };
+	foodTransform.scale = { 1.0f, 1.0f, 1.0f };
+
+	auto& foodAABB = entity_registry->emplace<AABBColliderComponent>(foodTriggerEntity);
+	foodAABB.halfExtents = { 2.0f, 1.0f, 2.0f };
+	foodAABB.offset = { 0.0f, 1.0f, 0.0f };
+	foodAABB.isTrigger = true;
+
+	auto& foodSphere = entity_registry->emplace<SphereColliderComponent>(foodTriggerEntity);
+	foodSphere.radius = glm::length(foodAABB.halfExtents);
+	foodSphere.offset = foodAABB.offset;
+	foodSphere.isTrigger = true;
+
+	horseTriggerEntity = entity_registry->create();
+
+	auto& horseTriggerTransform = entity_registry->emplace<TransformComponent>(horseTriggerEntity);
+	horseTriggerTransform.position = { 0.0f, 0.0f, -35.0f };
+	horseTriggerTransform.rotation = { 0.0f, 0.0f, 0.0f };
+	horseTriggerTransform.scale = { 1.0f, 1.0f, 1.0f };
+
+	auto& horseTriggerAABB = entity_registry->emplace<AABBColliderComponent>(horseTriggerEntity);
+	horseTriggerAABB.halfExtents = { 3.0f, 2.0f, 3.0f };
+	horseTriggerAABB.offset = { 0.0f, 2.0f, 0.0f };
+	horseTriggerAABB.isTrigger = true;
+
+	auto& horseTriggerSphere = entity_registry->emplace<SphereColliderComponent>(horseTriggerEntity);
+	horseTriggerSphere.radius = glm::length(horseTriggerAABB.halfExtents);
+	horseTriggerSphere.offset = horseTriggerAABB.offset;
+	horseTriggerSphere.isTrigger = true;
+}
+
+void Game::renderQuestObjectiveWindow()
+{
+	ImGui::SetNextWindowPos(ImVec2{ 500.0f, 20.0f }, ImGuiCond_Always, ImVec2{ 0.0f, 0.0f });
+
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, 0x80000000);
+	ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
+
+	ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoDecoration |
+		ImGuiWindowFlags_NoInputs |
+		ImGuiWindowFlags_AlwaysAutoResize;
+
+	if (ImGui::Begin("quest_objective_window", nullptr, flags))
+	{
+		ImGui::Text("Quest Objective");
+		ImGui::Separator();
+		ImGui::TextWrapped("%s", questSystem.questMessage.c_str());
+		ImGui::End();
+	}
+
+	ImGui::PopStyleColor(2);
 }
 
 

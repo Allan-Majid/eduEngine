@@ -16,5 +16,10 @@ struct AnimationComponent
 	float speed = 0.0f;
 	float maxSpeedForFullBlend = 10.0f;
 
+	bool playOnce = false;
+	bool freezeAtEnd = false;
+	bool animationFinished = false;
+	float animationDuration = 1.0f;
+
 	bool drawSkeleton = false;
 };
