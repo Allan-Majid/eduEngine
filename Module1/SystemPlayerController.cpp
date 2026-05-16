@@ -57,7 +57,25 @@ void PlayerControllerSystem::Update(entt::registry& registry, float deltaTime, f
         {
             moveDirection = glm::normalize(moveDirection);
             velocity.velocity = moveDirection * playerController.movementSpeed;
-            transform.rotation.y = glm::degrees(std::atan2(moveDirection.x, moveDirection.z));
+            float targetYaw = glm::degrees(std::atan2(moveDirection.x, moveDirection.z));
+
+            float rotationSpeed = 7.5f;
+
+            float currentYaw = transform.rotation.y;
+
+            float deltaYaw = targetYaw - currentYaw;
+
+            while (deltaYaw > 180.0f)
+            {
+                deltaYaw -= 360.0f;
+            }
+
+            while (deltaYaw < -180.0f)
+            {
+                deltaYaw += 360.0f;
+            }
+
+            transform.rotation.y += deltaYaw * rotationSpeed * deltaTime;
         }
         else
         {
