@@ -24,7 +24,7 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 		groundPlane.distanceToOrigin = 0.0f;
 
 		Sphere entitySphere;
-		entitySphere.center = transform.position;
+		entitySphere.center = transform.position + sphere.offset;
 		entitySphere.radius = sphere.radius;
 
 		if (SpherePlaneIntersection(entitySphere, groundPlane))

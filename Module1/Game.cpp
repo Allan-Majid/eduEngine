@@ -381,15 +381,16 @@ void Game::createPlayerEntity()
 	playerAnimation.useLayering = false;
 	playerAnimation.upperBodyRootNode = "mixamorig:Spine";
 
-	auto& playerSphere = entity_registry->emplace<SphereColliderComponent>(playerEntity);
-	playerSphere.radius = 1.5f;
-	playerSphere.isTrigger = false;
-
 	auto& playerAABB = entity_registry->emplace<AABBColliderComponent>(playerEntity);
 	playerAABB.halfExtents = { 1.0f, 2.2f, 1.0f };
 	playerAABB.offset = { 0.0f, 2.2f, 0.0f };
 	playerAABB.isTrigger = false;
-	
+
+	auto& playerSphere = entity_registry->emplace<SphereColliderComponent>(playerEntity);
+	playerSphere.radius = glm::length(playerAABB.halfExtents);
+	playerSphere.offset = playerAABB.offset;
+	playerSphere.isTrigger = false;
+
 }
 
 void Game::createHorseEntity()
@@ -417,14 +418,16 @@ void Game::createHorseEntity()
 	horseAnimation.useLayering = false;
 	horseAnimation.upperBodyRootNode = "";
 
-	auto& horseSphere = entity_registry->emplace<SphereColliderComponent>(horseEntity);
-	horseSphere.radius = 2.0f;
-	horseSphere.isTrigger = false;
 
 	auto& horseAABB = entity_registry->emplace<AABBColliderComponent>(horseEntity);
 	horseAABB.halfExtents = { 1.5f, 2.5f, 3.2f };
 	horseAABB.offset = { 0.0f, 2.4f, -0.6f };
 	horseAABB.isTrigger = false;
+
+	auto& horseSphere = entity_registry->emplace<SphereColliderComponent>(horseEntity);
+	horseSphere.radius = glm::length(horseAABB.halfExtents);
+	horseSphere.offset = horseAABB.offset;
+	horseSphere.isTrigger = false;
 }
 
 //void Game::createQuestAreaEntity()
@@ -454,14 +457,16 @@ void Game::createWallTestEntity()
 	wallTransform.rotation = { 0.0f, 0.0f, 0.0f };
 	wallTransform.scale = { 1.0f, 1.0f, 1.0f };
 
-	auto& wallSphere = entity_registry->emplace<SphereColliderComponent>(wallTestEntity);
-	wallSphere.radius = 3.0f;
-	wallSphere.isTrigger = false;
-	wallSphere.isStatic = true;
 	auto& wallAABB = entity_registry->emplace<AABBColliderComponent>(wallTestEntity);
 	wallAABB.halfExtents = { 3.0f, 1.0f, 3.0f };
 	wallAABB.isTrigger = false;
 	wallAABB.isStatic = true;
+
+	auto& wallSphere = entity_registry->emplace<SphereColliderComponent>(wallTestEntity);
+	wallSphere.radius = glm::length(wallAABB.halfExtents);
+	wallSphere.offset = wallAABB.offset;
+	wallSphere.isTrigger = false;
+	wallSphere.isStatic = true;
 }
 
 void Game::createNPCEntity()
@@ -492,14 +497,15 @@ void Game::createNPCEntity()
 	npcAnimationComponent.useLayering = true;
 	npcAnimationComponent.upperBodyRootNode = "mixamorig:Spine";
 
-	auto& npcSphere = entity_registry->emplace<SphereColliderComponent>(npcEntity);
-	npcSphere.radius = 2.0f;
-	npcSphere.isTrigger = false;
-
 	auto& npcAABB = entity_registry->emplace<AABBColliderComponent>(npcEntity);
 	npcAABB.halfExtents = { 1.0f, 2.2f, 1.0f };
 	npcAABB.offset = { 0.0f, 2.2f, 0.0f };
 	npcAABB.isTrigger = false;
+
+	auto& npcSphere = entity_registry->emplace<SphereColliderComponent>(npcEntity);
+	npcSphere.radius = glm::length(npcAABB.halfExtents);
+	npcSphere.offset = npcAABB.offset;
+	npcSphere.isTrigger = false;
 }
 
 void Game::logEntitySetup()
@@ -568,6 +574,22 @@ void Game::renderDebugShapes()
 		glm::vec3 max = center + aabb.halfExtents;
 
 		shapeRenderer->push_AABB(min, max);
+	}
+
+	auto sphereView = entity_registry->view<TransformComponent, SphereColliderComponent>();
+
+	shapeRenderer->push_states(ShapeRendering::Color4u{ 0xFFFF0000 });
+
+	for (auto entity : sphereView)
+	{
+		auto& transform = sphereView.get<TransformComponent>(entity);
+		auto& sphere = sphereView.get<SphereColliderComponent>(entity);
+
+		shapeRenderer->push_states(glm_aux::TS(transform.position + sphere.offset, glm::vec3(1.0f)));
+
+		shapeRenderer->push_sphere_wireframe(sphere.radius, sphere.radius);
+
+		shapeRenderer->pop_states<glm::mat4>();
 	}
 
 	shapeRenderer->pop_states<ShapeRendering::Color4u>();
