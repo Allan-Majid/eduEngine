@@ -19,7 +19,15 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 		auto& transform = view.get<TransformComponent>(entity);
 		auto& sphere = view.get<SphereColliderComponent>(entity);
 
-		if (TestSphereGroundPlane(transform.position, sphere.radius))
+		Plane groundPlane;
+		groundPlane.normal = { 0.0f, 1.0f, 0.0f };
+		groundPlane.distanceToOrigin = 0.0f;
+
+		Sphere entitySphere;
+		entitySphere.center = transform.position;
+		entitySphere.radius = sphere.radius;
+
+		if (SpherePlaneIntersection(entitySphere, groundPlane))
 		{
 			transform.position.y = sphere.radius;
 		}
@@ -49,7 +57,15 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 		auto& aabbA = registry.get<AABBColliderComponent>(entityA);
 		auto& aabbB = registry.get<AABBColliderComponent>(entityB);
 
-		bool actualCollision = TestAABBAABB(transformA.position, aabbA.halfExtents, transformB.position, aabbB.halfExtents);
+		AABB entityAABB_A;
+		entityAABB_A.center = transformA.position;
+		entityAABB_A.halfWidths = aabbA.halfExtents;
+
+		AABB entityAABB_B;
+		entityAABB_B.center = transformB.position;
+		entityAABB_B.halfWidths = aabbB.halfExtents;
+
+		bool actualCollision = TestAABBAABB(entityAABB_A, entityAABB_B);
 
 		if (!actualCollision)
 		{
@@ -70,37 +86,39 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 			continue;
 		}
 
-		glm::vec3 direction = transformA.position - transformB.position;
+		Sphere entitySphereA;
+		entitySphereA.center = transformA.position;
+		entitySphereA.radius = sphereA.radius;
 
-		if (glm::length(direction) == 0.0f)
-		{
-			direction = { 1.0f, 0.0f, 0.0f };
-		}
-		else
-		{
-			direction = glm::normalize(direction);
-		}
+		Sphere entitySphereB;
+		entitySphereB.center = transformB.position;
+		entitySphereB.radius = sphereB.radius;
 
-		float overlap = (sphereA.radius + sphereB.radius) - glm::length(transformA.position - transformB.position);
+		SimpleCollisionStruct* collisionData = SphereSphere(entitySphereA, entitySphereB, entityA, entityB);
 
-		if (overlap > 0.0f)
+		if (collisionData)
 		{
 			bool staticA = sphereA.isStatic;
 			bool staticB = sphereB.isStatic;
 
 			if (!staticA && !staticB)
 			{
-				transformA.position += direction * (overlap * 0.5f);
-				transformB.position -= direction * (overlap * 0.5f);
+				SeparateSpheres(transformA, transformB, *collisionData);
 			}
 			else if (!staticA && staticB)
 			{
-				transformA.position += direction * overlap;
+				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
+				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
+				transformA.position += separationDirection * penetrationDepth;
 			}
 			else if (staticA && !staticB)
 			{
-				transformB.position -= direction * overlap;
+				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_B, entityAABB_A);
+				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_B, entityAABB_A);
+				transformB.position += separationDirection * penetrationDepth;
 			}
+
+			delete collisionData;
 		}
 
 		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision resolved" });
@@ -109,32 +127,124 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 	DeleteBVH(bvhRoot);
 }
 
-bool CollisionSystem::TestSphereSphere(const glm::vec3& centerA, float radiusA, const glm::vec3& centerB, float radiusB)
+bool CollisionSystem::TestSphereSphere(const Sphere& a, const Sphere& b)
 {
-	glm::vec3 centerToCenter = centerA - centerB;
-	float distanceSquared = glm::dot(centerToCenter, centerToCenter);
-	float radiusSum = radiusA + radiusB;
+	glm::vec3 centerToCenter = a.center - b.center;
+	float distance = glm::dot(centerToCenter, centerToCenter);
+	float radiusSum = a.radius + b.radius;
 
-	return distanceSquared <= radiusSum * radiusSum;
+	return distance <= radiusSum * radiusSum;
 }
 
-bool CollisionSystem::TestAABBAABB(const glm::vec3& centerA, const glm::vec3& halfExtentsA, const glm::vec3& centerB, const glm::vec3& halfExtentsB)
+bool CollisionSystem::TestAABBAABB(const AABB& a, const AABB& b)
 {
-	bool overlapX = std::abs(centerA.x - centerB.x) <= (halfExtentsA.x + halfExtentsB.x);
-	bool overlapY = std::abs(centerA.y - centerB.y) <= (halfExtentsA.y + halfExtentsB.y);
-	bool overlapZ = std::abs(centerA.z - centerB.z) <= (halfExtentsA.z + halfExtentsB.z);
+	float centerDiff = std::abs(a.center.x - b.center.x);
+	float compoundedWidth = a.halfWidths.x + b.halfWidths.x;
 
-	return overlapX && overlapY && overlapZ;
+	if (centerDiff > compoundedWidth)
+	{
+		return false;
+	}
+
+	centerDiff = std::abs(a.center.y - b.center.y);
+	compoundedWidth = a.halfWidths.y + b.halfWidths.y;
+
+	if (centerDiff > compoundedWidth)
+	{
+		return false;
+	}
+
+	centerDiff = std::abs(a.center.z - b.center.z);
+	compoundedWidth = a.halfWidths.z + b.halfWidths.z;
+
+	if (centerDiff > compoundedWidth)
+	{
+		return false;
+	}
+
+	return true;
 }
 
-bool CollisionSystem::TestSphereGroundPlane(const glm::vec3& center, float radius)
+bool CollisionSystem::SpherePlaneIntersection(const Sphere& sphere, const Plane& plane)
 {
-	return center.y - radius <= 0.0f;
+	float distance = glm::dot(sphere.center, plane.normal) - plane.distanceToOrigin;
+
+	return distance <= sphere.radius;
 }
 
-bool CollisionSystem::TestAABBGroundPlane(const glm::vec3& center, const glm::vec3& halfExtents)
+bool CollisionSystem::AABBPlaneIntersection(const AABB& aabb, const Plane& plane)
 {
-	return center.y - halfExtents.y <= 0.0f;
+	float r = aabb.halfWidths.x * std::abs(plane.normal.x) +
+		aabb.halfWidths.y * std::abs(plane.normal.y) +
+		aabb.halfWidths.z * std::abs(plane.normal.z);
+
+	float s = glm::dot(plane.normal, aabb.center) - plane.distanceToOrigin;
+
+	return s <= r;
+}
+
+SimpleCollisionStruct* CollisionSystem::SphereSphere(const Sphere& a, const Sphere& b, entt::entity entityA, entt::entity entityB)
+{
+	glm::vec3 centerToCenter = a.center - b.center;
+	float distance = glm::dot(centerToCenter, centerToCenter);
+	float radiusSum = a.radius + b.radius;
+
+	if (distance > radiusSum * radiusSum)
+	{
+		return nullptr;
+	}
+
+	SimpleCollisionStruct* collisionData = new SimpleCollisionStruct();
+
+	if (distance == 0.0f)
+	{
+		collisionData->contactNormal = { 1.0f, 0.0f, 0.0f };
+	}
+	else
+	{
+		collisionData->contactNormal = glm::normalize(centerToCenter);
+	}
+
+	collisionData->thisEntity = entityA;
+	collisionData->otherEntity = entityB;
+	collisionData->contactPoint = a.center - collisionData->contactNormal * a.radius;
+	collisionData->penetrationDepth = radiusSum - std::sqrt(distance);
+
+	return collisionData;
+}
+
+void CollisionSystem::SeparateSpheres(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData)
+{
+	transformA.position += collisionData.contactNormal * (collisionData.penetrationDepth * 0.5f);
+	transformB.position -= collisionData.contactNormal * (collisionData.penetrationDepth * 0.5f);
+}
+
+glm::vec3 CollisionSystem::GetAABBSeparationDirection(const AABB& a, const AABB& b)
+{
+	float overlapX = (a.halfWidths.x + b.halfWidths.x) - std::abs(a.center.x - b.center.x);
+	float overlapY = (a.halfWidths.y + b.halfWidths.y) - std::abs(a.center.y - b.center.y);
+	float overlapZ = (a.halfWidths.z + b.halfWidths.z) - std::abs(a.center.z - b.center.z);
+
+	if (overlapX <= overlapY && overlapX <= overlapZ)
+	{
+		return { a.center.x < b.center.x ? -1.0f : 1.0f, 0.0f, 0.0f };
+	}
+
+	if (overlapY <= overlapX && overlapY <= overlapZ)
+	{
+		return { 0.0f, a.center.y < b.center.y ? -1.0f : 1.0f, 0.0f };
+	}
+
+	return { 0.0f, 0.0f, a.center.z < b.center.z ? -1.0f : 1.0f };
+}
+
+float CollisionSystem::GetAABBPenetrationDepth(const AABB& a, const AABB& b)
+{
+	float overlapX = (a.halfWidths.x + b.halfWidths.x) - std::abs(a.center.x - b.center.x);
+	float overlapY = (a.halfWidths.y + b.halfWidths.y) - std::abs(a.center.y - b.center.y);
+	float overlapZ = (a.halfWidths.z + b.halfWidths.z) - std::abs(a.center.z - b.center.z);
+
+	return std::min(overlapX, std::min(overlapY, overlapZ));
 }
 
 float CollisionSystem::DistanceBetweenSpheres(const CollisionSphere& leftSphere, const CollisionSphere& rightSphere)
@@ -252,7 +362,15 @@ void CollisionSystem::CollectLeafPairs(BVHNode* leftNode, BVHNode* rightNode, st
 		return;
 	}
 
-	if (!TestSphereSphere(leftNode->sphere.center, leftNode->sphere.radius, rightNode->sphere.center, rightNode->sphere.radius))
+	Sphere leftSphere;
+	leftSphere.center = leftNode->sphere.center;
+	leftSphere.radius = leftNode->sphere.radius;
+
+	Sphere rightSphere;
+	rightSphere.center = rightNode->sphere.center;
+	rightSphere.radius = rightNode->sphere.radius;
+
+	if (!TestSphereSphere(leftSphere, rightSphere))
 	{
 		return;
 	}

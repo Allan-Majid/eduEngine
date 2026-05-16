@@ -26,16 +26,49 @@ struct BVHNode
 	bool isLeaf = false;
 };
 
+struct Sphere
+{
+	glm::vec3 center = { 0.0f, 0.0f, 0.0f };
+	float radius = 1.0f;
+};
+
+struct AABB
+{
+	glm::vec3 center = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 halfWidths = { 0.5f, 0.5f, 0.5f };
+};
+
+struct Plane
+{
+	glm::vec3 normal = { 0.0f, 1.0f, 0.0f };
+	float distanceToOrigin = 0.0f;
+};
+
+struct SimpleCollisionStruct
+{
+	entt::entity thisEntity = entt::null;
+	entt::entity otherEntity = entt::null;
+	float penetrationDepth = 0.0f;
+	glm::vec3 contactPoint = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 contactNormal = { 0.0f, 0.0f, 0.0f };
+};
+
 class CollisionSystem
 {
 public:
 	void Update(entt::registry& registry, EventQueue& eventQueue);
 
 private:
-	bool TestSphereSphere(const glm::vec3& centerA, float radiusA, const glm::vec3& centerB, float radiusB);
-	bool TestAABBAABB(const glm::vec3& centerA, const glm::vec3& halfExtentsA, const glm::vec3& centerB, const glm::vec3& halfExtentsB);
-	bool TestSphereGroundPlane(const glm::vec3& center, float radius);
-	bool TestAABBGroundPlane(const glm::vec3& center, const glm::vec3& halfExtents);
+	bool TestSphereSphere(const Sphere& a, const Sphere& b);
+	bool TestAABBAABB(const AABB& a, const AABB& b);
+	bool SpherePlaneIntersection(const Sphere& sphere, const Plane& plane);
+	bool AABBPlaneIntersection(const AABB& aabb, const Plane& plane);
+	SimpleCollisionStruct* SphereSphere(const Sphere& a, const Sphere& b, entt::entity entityA, entt::entity entityB);
+	void SeparateSpheres(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData);
+	float GetAABBPenetrationDepth(const AABB& a, const AABB& b);
+	glm::vec3 GetAABBSeparationDirection(const AABB& a, const AABB& b);
+
+	// BVH construction and collision pair finding
 	BVHNode* BuildBVHBottomUp(std::vector<CollisionSphere>& spheres);
 	BVHNode* BuildNodeFromSingleSphere(const CollisionSphere& sphere);
 	BVHNode* BuildNodeFromSpheres(BVHNode* leftNode, BVHNode* rightNode);
@@ -45,3 +78,4 @@ private:
 	float DistanceBetweenSpheres(const CollisionSphere& leftSphere, const CollisionSphere& rightSphere);
 
 };
+

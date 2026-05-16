@@ -398,7 +398,7 @@ void Game::createWallTestEntity()
 	wallTestEntity = entity_registry->create();
 
 	auto& wallTransform = entity_registry->emplace<TransformComponent>(wallTestEntity);
-	wallTransform.position = { 10.0f, -20.0f, -20.0f };
+	wallTransform.position = { 10.0f, 1.0f, -20.0f };
 	wallTransform.rotation = { 0.0f, 0.0f, 0.0f };
 	wallTransform.scale = { 1.0f, 1.0f, 1.0f };
 
