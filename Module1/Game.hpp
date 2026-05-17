@@ -99,7 +99,6 @@ private:
     void createPlayerEntity();
     void createNPCEntity();
     void createWallTestEntity();
-    void createQuestAreaEntity();
     void logEntitySetup();
 
 	//helper methods for rendering
@@ -122,8 +121,6 @@ private:
     //entities
 
     entt::entity playerEntity;
-
-    entt::entity questAreaEntity;
 
     entt::entity wallTestEntity;
 

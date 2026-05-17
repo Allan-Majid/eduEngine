@@ -29,7 +29,8 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 
 		if (SpherePlaneIntersection(entitySphere, groundPlane))
 		{
-			transform.position.y = sphere.radius;
+			/*float groundY = 0.0f;
+			transform.position.y = groundY + sphere.radius - sphere.offset.y;*/
 		}
 
 		broadPhaseSpheres.push_back({ entity, transform.position, sphere.radius });
@@ -107,7 +108,11 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 
 			if (!staticA && !staticB)
 			{
-				SeparateSpheres(transformA, transformB, *collisionData);
+				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
+				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
+
+				transformA.position += separationDirection * (penetrationDepth * 0.5f);
+				transformB.position -= separationDirection * (penetrationDepth * 0.5f);
 			}
 			else if (!staticA && staticB)
 			{
@@ -218,7 +223,7 @@ SimpleCollisionStruct* CollisionSystem::SphereSphere(const Sphere& a, const Sphe
 	return collisionData;
 }
 
-void CollisionSystem::SeparateSpheres(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData)
+void CollisionSystem::ResolveSphereCollision(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData)
 {
 	transformA.position += collisionData.contactNormal * (collisionData.penetrationDepth * 0.5f);
 	transformB.position -= collisionData.contactNormal * (collisionData.penetrationDepth * 0.5f);

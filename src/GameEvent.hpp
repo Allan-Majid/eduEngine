@@ -9,6 +9,7 @@ enum class GameEventType
 	DebugMessage,
 	CollisionStarted,
 	TriggerEntered,
+	TriggerExited,
 	QuestFoodFound,
 	QuestHorseReached,
 	QuestHorseFed

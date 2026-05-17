@@ -450,24 +450,6 @@ void Game::createHorseEntity()
 	horseSphere.isTrigger = false;
 }
 
-//void Game::createQuestAreaEntity()
-//{
-//	questAreaEntity = entity_registry->create();
-//
-//	auto& questTransform = entity_registry->emplace<TransformComponent>(questAreaEntity);
-//	questTransform.position = { 10.0f, 0.0f, -20.0f };
-//	questTransform.rotation = { 0.0f, 0.0f, 0.0f };
-//	questTransform.scale = { 1.0f, 1.0f, 1.0f };
-//
-//	auto& questSphere = entity_registry->emplace<SphereColliderComponent>(questAreaEntity);
-//	questSphere.radius = 3.0f;
-//	questSphere.isTrigger = true;
-//
-//	auto& questAABB = entity_registry->emplace<AABBColliderComponent>(questAreaEntity);
-//	questAABB.halfExtents = { 3.0f, 1.0f, 3.0f };
-//	questAABB.isTrigger = true;
-//}
-
 void Game::createWallTestEntity()
 {
 	wallTestEntity = entity_registry->create();

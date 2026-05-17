@@ -64,7 +64,7 @@ private:
 	bool SpherePlaneIntersection(const Sphere& sphere, const Plane& plane);
 	bool AABBPlaneIntersection(const AABB& aabb, const Plane& plane);
 	SimpleCollisionStruct* SphereSphere(const Sphere& a, const Sphere& b, entt::entity entityA, entt::entity entityB);
-	void SeparateSpheres(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData);
+	void ResolveSphereCollision(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData);
 	float GetAABBPenetrationDepth(const AABB& a, const AABB& b);
 	glm::vec3 GetAABBSeparationDirection(const AABB& a, const AABB& b);
 
