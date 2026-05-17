@@ -10,6 +10,7 @@ enum class GameEventType
 	CollisionStarted,
 	TriggerEntered,
 	TriggerExited,
+	QuestUpdated,
 	QuestFoodFound,
 	QuestHorseReached,
 	QuestHorseFed

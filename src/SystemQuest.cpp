@@ -1,34 +1,43 @@
 #include "SystemQuest.hpp"
 #include "ComponentAnimation.hpp"
 
-
-
-void QuestSystem::Update(entt::registry& registry, const GameEvent& event, entt::entity playerEntity, entt::entity foodTriggerEntity, entt::entity horseTriggerEntity, entt::entity horseEntity)
+void QuestSystem::Update(entt::registry& registry, EventQueue& eventQueue, const GameEvent& event, entt::entity playerEntity, entt::entity foodTriggerEntity, entt::entity horseTriggerEntity, entt::entity horseEntity)
 {
-	if (event.type != GameEventType::TriggerEntered)
+	bool playerHitFoodTrigger = event.entityA == foodTriggerEntity && event.entityB == playerEntity;
+	bool playerHitHorseTrigger = event.entityA == horseTriggerEntity && event.entityB == playerEntity;
+
+	if (event.type == GameEventType::TriggerEntered)
 	{
-		return;
+		if (playerHitFoodTrigger && !hasFood)
+		{
+			hasFood = true;
+			questMessage = "Food collected. Bring it to the horse.";
+			SendQuestUpdate(eventQueue);
+			return;
+		}
+
+		if (playerHitHorseTrigger && hasFood && !horseFed && !feedingStarted)
+		{
+			playerNearHorse = true;
+			questMessage = "Press F to feed the horse.";
+			SendQuestUpdate(eventQueue);
+			return;
+		}
 	}
 
-	bool playerHitFoodTrigger = (event.entityA == playerEntity && event.entityB == foodTriggerEntity) || (event.entityA == foodTriggerEntity && event.entityB == playerEntity);
-	bool playerHitHorseTrigger = (event.entityA == playerEntity && event.entityB == horseTriggerEntity) || (event.entityA == horseTriggerEntity && event.entityB == playerEntity);
-
-	if (playerHitFoodTrigger && !hasFood)
+	if (event.type == GameEventType::TriggerExited)
 	{
-		hasFood = true;
-		questMessage = "Food collected. Bring it to the horse.";
-		return;
+		if (playerHitHorseTrigger && hasFood && !horseFed && !feedingStarted)
+		{
+			playerNearHorse = false;
+			questMessage = "Bring the food to the horse.";
+			SendQuestUpdate(eventQueue);
+			return;
+		}
 	}
-
-	if (playerHitHorseTrigger && hasFood && !horseFed)
-	{
-		playerNearHorse = true;
-		questMessage = "Press F to feed the horse.";
-	}
-
 }
 
-void QuestSystem::UpdateQuestProgress(entt::registry& registry, float deltaTime, std::shared_ptr<eeng::InputManager> inputManager, entt::entity playerEntity, entt::entity horseEntity)
+void QuestSystem::UpdateQuestProgress(entt::registry& registry, EventQueue& eventQueue, float deltaTime, std::shared_ptr<eeng::InputManager> inputManager, entt::entity playerEntity, entt::entity horseEntity)
 {
 	using Key = eeng::InputManager::Key;
 
@@ -37,6 +46,7 @@ void QuestSystem::UpdateQuestProgress(entt::registry& registry, float deltaTime,
 		feedingStarted = true;
 		feedingTimer = 0.0f;
 		questMessage = "Feeding horse...";
+		SendQuestUpdate(eventQueue);
 
 		if (auto* playerAnimation = registry.try_get<AnimationComponent>(playerEntity))
 		{
@@ -60,7 +70,9 @@ void QuestSystem::UpdateQuestProgress(entt::registry& registry, float deltaTime,
 		if (feedingTimer >= feedingDuration)
 		{
 			horseFed = true;
+			playerNearHorse = false;
 			questMessage = "Quest completed. Horse fed.";
+			SendQuestUpdate(eventQueue);
 
 			if (auto* horseAnimation = registry.try_get<AnimationComponent>(horseEntity))
 			{
@@ -83,7 +95,6 @@ void QuestSystem::UpdateQuestProgress(entt::registry& registry, float deltaTime,
 				playerAnimation->blendFactor = 0.0f;
 				playerAnimation->useSpeedControl = true;
 				playerAnimation->useLayering = false;
-
 				playerAnimation->playOnce = false;
 				playerAnimation->freezeAtEnd = false;
 				playerAnimation->animationFinished = false;
@@ -91,4 +102,14 @@ void QuestSystem::UpdateQuestProgress(entt::registry& registry, float deltaTime,
 			}
 		}
 	}
+}
+
+void QuestSystem::SendQuestUpdate(EventQueue& eventQueue)
+{
+	eventQueue.EnqueueEvent({
+		GameEventType::QuestUpdated,
+		entt::null,
+		entt::null,
+		questMessage
+		});
 }

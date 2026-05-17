@@ -12,6 +12,8 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 {
 	auto view = registry.view<TransformComponent, SphereColliderComponent, AABBColliderComponent>();
 
+	std::vector<std::pair<entt::entity, entt::entity>> currentTriggerPairs;
+
 	std::vector<CollisionSphere> broadPhaseSpheres;
 
 	for (auto entity : view)
@@ -33,7 +35,7 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 			transform.position.y = groundY + sphere.radius - sphere.offset.y;*/
 		}
 
-		broadPhaseSpheres.push_back({ entity, transform.position, sphere.radius });
+		broadPhaseSpheres.push_back({ entity, transform.position + sphere.offset, sphere.radius });
 	}
 
 	BVHNode* bvhRoot = BuildBVHBottomUp(broadPhaseSpheres);
@@ -59,11 +61,11 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 		auto& aabbB = registry.get<AABBColliderComponent>(entityB);
 
 		AABB entityAABB_A;
-		entityAABB_A.center = transformA.position;
+		entityAABB_A.center = transformA.position + aabbA.offset;
 		entityAABB_A.halfWidths = aabbA.halfExtents;
 
 		AABB entityAABB_B;
-		entityAABB_B.center = transformB.position;
+		entityAABB_B.center = transformB.position + aabbB.offset;
 		entityAABB_B.halfWidths = aabbB.halfExtents;
 
 		bool actualCollision = TestAABBAABB(entityAABB_A, entityAABB_B);
@@ -86,17 +88,22 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 			entt::entity triggerEntity = sphereA.isTrigger ? entityA : entityB;
 			entt::entity colliderEntity = sphereA.isTrigger ? entityB : entityA;
 
-			eventQueue.EnqueueEvent({ GameEventType::TriggerEntered, triggerEntity, colliderEntity, "Trigger entered" });
+			currentTriggerPairs.push_back({ triggerEntity, colliderEntity });
+
+			if (!ContainsPair(previousTriggerPairs, triggerEntity, colliderEntity))
+			{
+				eventQueue.EnqueueEvent({ GameEventType::TriggerEntered, triggerEntity, colliderEntity, "Trigger entered" });
+			}
 
 			continue;
 		}
 
 		Sphere entitySphereA;
-		entitySphereA.center = transformA.position;
+		entitySphereA.center = transformA.position + sphereA.offset;
 		entitySphereA.radius = sphereA.radius;
 
 		Sphere entitySphereB;
-		entitySphereB.center = transformB.position;
+		entitySphereB.center = transformB.position + sphereB.offset;
 		entitySphereB.radius = sphereB.radius;
 
 		SimpleCollisionStruct* collisionData = SphereSphere(entitySphereA, entitySphereB, entityA, entityB);
@@ -133,6 +140,16 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision detected" });
 		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityB, entityA, "Collision detected" });
 	}
+
+	for (auto pair : previousTriggerPairs)
+	{
+		if (!ContainsPair(currentTriggerPairs, pair.first, pair.second))
+		{
+			eventQueue.EnqueueEvent({ GameEventType::TriggerExited, pair.first, pair.second, "Trigger exited" });
+		}
+	}
+
+	previousTriggerPairs = currentTriggerPairs;
 
 	DeleteBVH(bvhRoot);
 }
@@ -255,6 +272,19 @@ float CollisionSystem::GetAABBPenetrationDepth(const AABB& a, const AABB& b)
 	float overlapZ = (a.halfWidths.z + b.halfWidths.z) - std::abs(a.center.z - b.center.z);
 
 	return std::min(overlapX, std::min(overlapY, overlapZ));
+}
+
+bool CollisionSystem::ContainsPair(const std::vector<std::pair<entt::entity, entt::entity>>& pairs, entt::entity triggerEntity, entt::entity colliderEntity)
+{
+	for (auto pair : pairs)
+	{
+		if (pair.first == triggerEntity && pair.second == colliderEntity)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 float CollisionSystem::DistanceBetweenSpheres(const CollisionSphere& leftSphere, const CollisionSphere& rightSphere)

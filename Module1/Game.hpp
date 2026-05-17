@@ -76,6 +76,7 @@ private:
 
 	// System for handling quest-related logic
     QuestSystem questSystem;
+    std::string questObjectiveText = "Find food for the horse";
     entt::entity foodTriggerEntity = entt::null;
     entt::entity horseTriggerEntity = entt::null;
 

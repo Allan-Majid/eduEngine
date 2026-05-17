@@ -330,7 +330,14 @@ void Game::initRegistry()
 void Game::initEventSystem()
 {
 	debugListenerId = eventQueue.RegisterListener([this](const GameEvent& event) { debugEventListener.OnNotify(event); });
-	eventQueue.RegisterListener([this](const GameEvent& event) { questSystem.Update(*entity_registry, event, playerEntity, foodTriggerEntity, horseTriggerEntity, horseEntity); });
+	eventQueue.RegisterListener([this](const GameEvent& event) { questSystem.Update(*entity_registry, eventQueue, event, playerEntity, foodTriggerEntity, horseTriggerEntity, horseEntity); });
+	eventQueue.RegisterListener([this](const GameEvent& event)
+		{
+			if (event.type == GameEventType::QuestUpdated)
+			{
+				questObjectiveText = event.message;
+			}
+		});
 	eventQueue.EnqueueEvent({ GameEventType::DebugMessage, entt::null, entt::null, "Event system initialized" });
 }
 
@@ -622,7 +629,7 @@ void Game::updateSystems(float deltaTime, InputManagerPtr input)
 	movementSystem.Update(*entity_registry, deltaTime);
 	collisionSystem.Update(*entity_registry, eventQueue);
 	animationSystem.Update(*entity_registry, deltaTime);
-	questSystem.UpdateQuestProgress(*entity_registry, deltaTime, input, playerEntity, horseEntity);
+	questSystem.UpdateQuestProgress(*entity_registry, eventQueue, deltaTime, input, playerEntity, horseEntity);
 }
 
 void Game::updateInputAndCamera(float deltaTime, InputManagerPtr input)
@@ -671,9 +678,12 @@ void Game::createQuestTriggerEntities()
 	foodTriggerEntity = entity_registry->create();
 
 	auto& foodTransform = entity_registry->emplace<TransformComponent>(foodTriggerEntity);
-	foodTransform.position = { 8.0f, 0.0f, -8.0f };
+	foodTransform.position = { 18.0f, 0.01f, -8.0f };
 	foodTransform.rotation = { 0.0f, 0.0f, 0.0f };
-	foodTransform.scale = { 1.0f, 1.0f, 1.0f };
+	foodTransform.scale = { 2.0f, 5.0f, 2.0f };
+
+	auto& foodMesh = entity_registry->emplace<MeshComponent>(foodTriggerEntity);
+	foodMesh.mesh = grassMesh;
 
 	auto& foodAABB = entity_registry->emplace<AABBColliderComponent>(foodTriggerEntity);
 	foodAABB.halfExtents = { 2.0f, 1.0f, 2.0f };
@@ -719,7 +729,7 @@ void Game::renderQuestObjectiveWindow()
 	{
 		ImGui::Text("Quest Objective");
 		ImGui::Separator();
-		ImGui::TextWrapped("%s", questSystem.questMessage.c_str());
+		ImGui::TextWrapped("%s", questObjectiveText.c_str());
 		ImGui::End();
 	}
 

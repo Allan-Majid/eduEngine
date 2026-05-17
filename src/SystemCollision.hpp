@@ -67,6 +67,8 @@ private:
 	void ResolveSphereCollision(TransformComponent& transformA, TransformComponent& transformB, const SimpleCollisionStruct& collisionData);
 	float GetAABBPenetrationDepth(const AABB& a, const AABB& b);
 	glm::vec3 GetAABBSeparationDirection(const AABB& a, const AABB& b);
+	std::vector<std::pair<entt::entity, entt::entity>> previousTriggerPairs;
+	bool ContainsPair(const std::vector<std::pair<entt::entity, entt::entity>>& pairs, entt::entity triggerEntity, entt::entity colliderEntity);
 
 	// BVH construction and collision pair finding
 	BVHNode* BuildBVHBottomUp(std::vector<CollisionSphere>& spheres);
