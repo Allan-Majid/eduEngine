@@ -61,7 +61,10 @@ void CollisionSystem::ProcessCollisionPairs(
 		entt::entity entityA = pair.first;
 		entt::entity entityB = pair.second;
 
-		if (!registry.valid(entityA) || !registry.valid(entityB))
+		AABB entityAABB_A;
+		AABB entityAABB_B;
+
+		if (!BuildAABBsForPair(registry, entityA, entityB, entityAABB_A, entityAABB_B))
 		{
 			continue;
 		}
@@ -70,16 +73,6 @@ void CollisionSystem::ProcessCollisionPairs(
 		auto& transformB = registry.get<TransformComponent>(entityB);
 		auto& sphereA = registry.get<SphereColliderComponent>(entityA);
 		auto& sphereB = registry.get<SphereColliderComponent>(entityB);
-		auto& aabbA = registry.get<AABBColliderComponent>(entityA);
-		auto& aabbB = registry.get<AABBColliderComponent>(entityB);
-
-		AABB entityAABB_A;
-		entityAABB_A.center = transformA.position + aabbA.offset;
-		entityAABB_A.halfWidths = aabbA.halfExtents;
-
-		AABB entityAABB_B;
-		entityAABB_B.center = transformB.position + aabbB.offset;
-		entityAABB_B.halfWidths = aabbB.halfExtents;
 
 		bool actualCollision = TestAABBAABB(entityAABB_A, entityAABB_B);
 
@@ -88,88 +81,78 @@ void CollisionSystem::ProcessCollisionPairs(
 			continue;
 		}
 
-		bool bothAreTriggers = sphereA.isTrigger && sphereB.isTrigger;
-		bool oneIsTrigger = sphereA.isTrigger || sphereB.isTrigger;
-
-		if (bothAreTriggers)
+		if (HandleTriggerPair(eventQueue, entityA, entityB, sphereA, sphereB, currentTriggerPairs))
 		{
 			continue;
 		}
 
-		if (oneIsTrigger)
-		{
-			entt::entity triggerEntity = sphereA.isTrigger ? entityA : entityB;
-			entt::entity colliderEntity = sphereA.isTrigger ? entityB : entityA;
+		ResolveSolidCollisionPair(transformA, transformB, sphereA, sphereB, entityAABB_A, entityAABB_B);
 
-			currentTriggerPairs.push_back({ triggerEntity, colliderEntity });
+		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision detected" });
+		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityB, entityA, "Collision detected" });
+	}
+}
 
-			if (!ContainsPair(previousTriggerPairs, triggerEntity, colliderEntity))
-			{
-				eventQueue.EnqueueEvent({
-					GameEventType::TriggerEntered,
-					triggerEntity,
-					colliderEntity,
-					"Trigger entered"
-					});
-			}
+bool CollisionSystem::BuildAABBsForPair(
+	entt::registry& registry,
+	entt::entity entityA,
+	entt::entity entityB,
+	AABB& entityAABB_A,
+	AABB& entityAABB_B
+)
+{
+	if (!registry.valid(entityA) || !registry.valid(entityB))
+	{
+		return false;
+	}
 
-			continue;
-		}
+	auto& transformA = registry.get<TransformComponent>(entityA);
+	auto& transformB = registry.get<TransformComponent>(entityB);
+	auto& aabbA = registry.get<AABBColliderComponent>(entityA);
+	auto& aabbB = registry.get<AABBColliderComponent>(entityB);
 
-		Sphere entitySphereA;
-		entitySphereA.center = transformA.position + sphereA.offset;
-		entitySphereA.radius = sphereA.radius;
+	entityAABB_A.center = transformA.position + aabbA.offset;
+	entityAABB_A.halfWidths = aabbA.halfExtents;
 
-		Sphere entitySphereB;
-		entitySphereB.center = transformB.position + sphereB.offset;
-		entitySphereB.radius = sphereB.radius;
+	entityAABB_B.center = transformB.position + aabbB.offset;
+	entityAABB_B.halfWidths = aabbB.halfExtents;
 
-		SimpleCollisionStruct* collisionData = SphereSphere(entitySphereA, entitySphereB, entityA, entityB);
+	return true;
+}
 
-		if (collisionData)
-		{
-			bool staticA = sphereA.isStatic;
-			bool staticB = sphereB.isStatic;
+void CollisionSystem::ResolveSolidCollisionPair(
+	TransformComponent& transformA,
+	TransformComponent& transformB,
+	const SphereColliderComponent& sphereA,
+	const SphereColliderComponent& sphereB,
+	const AABB& entityAABB_A,
+	const AABB& entityAABB_B
+)
+{
+	bool staticA = sphereA.isStatic;
+	bool staticB = sphereB.isStatic;
 
-			if (!staticA && !staticB)
-			{
-				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
-				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
+	if (!staticA && !staticB)
+	{
+		glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
+		float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
 
-				transformA.position += separationDirection * (penetrationDepth * 0.5f);
-				transformB.position -= separationDirection * (penetrationDepth * 0.5f);
-			}
-			else if (!staticA && staticB)
-			{
-				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
-				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
+		transformA.position += separationDirection * (penetrationDepth * 0.5f);
+		transformB.position -= separationDirection * (penetrationDepth * 0.5f);
+	}
+	else if (!staticA && staticB)
+	{
+		glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
+		float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
 
-				transformA.position += separationDirection * penetrationDepth;
-			}
-			else if (staticA && !staticB)
-			{
-				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_B, entityAABB_A);
-				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_B, entityAABB_A);
+		transformA.position += separationDirection * penetrationDepth;
+	}
+	else if (staticA && !staticB)
+	{
+		glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_B, entityAABB_A);
+		float penetrationDepth = GetAABBPenetrationDepth(entityAABB_B, entityAABB_A);
 
-				transformB.position += separationDirection * penetrationDepth;
-			}
-
-			delete collisionData;
-		}
-
-		eventQueue.EnqueueEvent({
-			GameEventType::CollisionStarted,
-			entityA,
-			entityB,
-			"Collision detected"
-			});
-
-		eventQueue.EnqueueEvent({
-			GameEventType::CollisionStarted,
-			entityB,
-			entityA,
-			"Collision detected"
-			});
+		transformB.position += separationDirection * penetrationDepth;
 	}
 }
 
@@ -187,6 +170,46 @@ void CollisionSystem::BroadcastTriggerExitEvents(EventQueue& eventQueue, const s
 				});
 		}
 	}
+}
+
+bool CollisionSystem::HandleTriggerPair(
+	EventQueue& eventQueue,
+	entt::entity entityA,
+	entt::entity entityB,
+	const SphereColliderComponent& sphereA,
+	const SphereColliderComponent& sphereB,
+	std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs
+)
+{
+	bool bothAreTriggers = sphereA.isTrigger && sphereB.isTrigger;
+	bool oneIsTrigger = sphereA.isTrigger || sphereB.isTrigger;
+
+	if (bothAreTriggers)
+	{
+		return true;
+	}
+
+	if (!oneIsTrigger)
+	{
+		return false;
+	}
+
+	entt::entity triggerEntity = sphereA.isTrigger ? entityA : entityB;
+	entt::entity colliderEntity = sphereA.isTrigger ? entityB : entityA;
+
+	currentTriggerPairs.push_back({ triggerEntity, colliderEntity });
+
+	if (!ContainsPair(previousTriggerPairs, triggerEntity, colliderEntity))
+	{
+		eventQueue.EnqueueEvent({
+			GameEventType::TriggerEntered,
+			triggerEntity,
+			colliderEntity,
+			"Trigger entered"
+			});
+	}
+
+	return true;
 }
 
 bool CollisionSystem::TestSphereSphere(const Sphere& a, const Sphere& b)

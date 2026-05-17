@@ -59,14 +59,38 @@ public:
 	void Update(entt::registry& registry, EventQueue& eventQueue);
 
 private:
-	//Helper functions for collision processing
-	std::vector<CollisionSphere> BuildBroadPhaseSpheres(entt::registry& registry);
-
 	void ProcessCollisionPairs(
 		entt::registry& registry,
 		EventQueue& eventQueue,
 		const std::vector<std::pair<entt::entity, entt::entity>>& possiblePairs,
 		std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs);
+
+	//Helper functions for collision pair processing
+	std::vector<CollisionSphere> BuildBroadPhaseSpheres(entt::registry& registry);
+	bool HandleTriggerPair(
+		EventQueue& eventQueue,
+		entt::entity entityA,
+		entt::entity entityB,
+		const SphereColliderComponent& sphereA,
+		const SphereColliderComponent& sphereB,
+		std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs
+	);
+	void ResolveSolidCollisionPair(
+		TransformComponent& transformA,
+		TransformComponent& transformB,
+		const SphereColliderComponent& sphereA,
+		const SphereColliderComponent& sphereB,
+		const AABB& entityAABB_A,
+		const AABB& entityAABB_B
+	);
+	bool BuildAABBsForPair(
+		entt::registry& registry,
+		entt::entity entityA,
+		entt::entity entityB,
+		AABB& entityAABB_A,
+		AABB& entityAABB_B
+	);
+
 
 	void BroadcastTriggerExitEvents(EventQueue& eventQueue, const std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs);
 
