@@ -68,7 +68,7 @@ void Game::renderUI()
 
 	renderGameInfoUI();
 	renderCustomDebugUI();
-	renderInWorldHorseLabel();
+	//renderInWorldHorseLabel();
 	renderQuestObjectiveWindow();
 
 }

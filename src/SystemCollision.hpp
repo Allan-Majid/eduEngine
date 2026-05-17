@@ -59,6 +59,18 @@ public:
 	void Update(entt::registry& registry, EventQueue& eventQueue);
 
 private:
+	//Helper functions for collision processing
+	std::vector<CollisionSphere> BuildBroadPhaseSpheres(entt::registry& registry);
+
+	void ProcessCollisionPairs(
+		entt::registry& registry,
+		EventQueue& eventQueue,
+		const std::vector<std::pair<entt::entity, entt::entity>>& possiblePairs,
+		std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs);
+
+	void BroadcastTriggerExitEvents(EventQueue& eventQueue, const std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs);
+
+	// Collision detection functions
 	bool TestSphereSphere(const Sphere& a, const Sphere& b);
 	bool TestAABBAABB(const AABB& a, const AABB& b);
 	bool SpherePlaneIntersection(const Sphere& sphere, const Plane& plane);

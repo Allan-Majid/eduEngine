@@ -10,9 +10,27 @@
 
 void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 {
-	auto view = registry.view<TransformComponent, SphereColliderComponent, AABBColliderComponent>();
-
 	std::vector<std::pair<entt::entity, entt::entity>> currentTriggerPairs;
+
+	std::vector<CollisionSphere> broadPhaseSpheres = BuildBroadPhaseSpheres(registry);
+
+	BVHNode* bvhRoot = BuildBVHBottomUp(broadPhaseSpheres);
+
+	std::vector<std::pair<entt::entity, entt::entity>> possiblePairs;
+	FindPossibleCollisionPairs(bvhRoot, possiblePairs);
+
+	ProcessCollisionPairs(registry, eventQueue, possiblePairs, currentTriggerPairs);
+
+	BroadcastTriggerExitEvents(eventQueue, currentTriggerPairs);
+
+	previousTriggerPairs = currentTriggerPairs;
+
+	DeleteBVH(bvhRoot);
+}
+
+std::vector<CollisionSphere> CollisionSystem::BuildBroadPhaseSpheres(entt::registry& registry)
+{
+	auto view = registry.view<TransformComponent, SphereColliderComponent, AABBColliderComponent>();
 
 	std::vector<CollisionSphere> broadPhaseSpheres;
 
@@ -21,28 +39,23 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 		auto& transform = view.get<TransformComponent>(entity);
 		auto& sphere = view.get<SphereColliderComponent>(entity);
 
-		Plane groundPlane;
-		groundPlane.normal = { 0.0f, 1.0f, 0.0f };
-		groundPlane.distanceToOrigin = 0.0f;
-
-		Sphere entitySphere;
-		entitySphere.center = transform.position + sphere.offset;
-		entitySphere.radius = sphere.radius;
-
-		if (SpherePlaneIntersection(entitySphere, groundPlane))
-		{
-			/*float groundY = 0.0f;
-			transform.position.y = groundY + sphere.radius - sphere.offset.y;*/
-		}
-
-		broadPhaseSpheres.push_back({ entity, transform.position + sphere.offset, sphere.radius });
+		broadPhaseSpheres.push_back({
+			entity,
+			transform.position + sphere.offset,
+			sphere.radius
+			});
 	}
 
-	BVHNode* bvhRoot = BuildBVHBottomUp(broadPhaseSpheres);
+	return broadPhaseSpheres;
+}
 
-	std::vector<std::pair<entt::entity, entt::entity>> possiblePairs;
-	FindPossibleCollisionPairs(bvhRoot, possiblePairs);
-
+void CollisionSystem::ProcessCollisionPairs(
+	entt::registry& registry,
+	EventQueue& eventQueue,
+	const std::vector<std::pair<entt::entity, entt::entity>>& possiblePairs,
+	std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs
+)
+{
 	for (auto pair : possiblePairs)
 	{
 		entt::entity entityA = pair.first;
@@ -92,7 +105,12 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 
 			if (!ContainsPair(previousTriggerPairs, triggerEntity, colliderEntity))
 			{
-				eventQueue.EnqueueEvent({ GameEventType::TriggerEntered, triggerEntity, colliderEntity, "Trigger entered" });
+				eventQueue.EnqueueEvent({
+					GameEventType::TriggerEntered,
+					triggerEntity,
+					colliderEntity,
+					"Trigger entered"
+					});
 			}
 
 			continue;
@@ -125,33 +143,50 @@ void CollisionSystem::Update(entt::registry& registry, EventQueue& eventQueue)
 			{
 				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_A, entityAABB_B);
 				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_A, entityAABB_B);
+
 				transformA.position += separationDirection * penetrationDepth;
 			}
 			else if (staticA && !staticB)
 			{
 				glm::vec3 separationDirection = GetAABBSeparationDirection(entityAABB_B, entityAABB_A);
 				float penetrationDepth = GetAABBPenetrationDepth(entityAABB_B, entityAABB_A);
+
 				transformB.position += separationDirection * penetrationDepth;
 			}
 
 			delete collisionData;
 		}
 
-		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityA, entityB, "Collision detected" });
-		eventQueue.EnqueueEvent({ GameEventType::CollisionStarted, entityB, entityA, "Collision detected" });
-	}
+		eventQueue.EnqueueEvent({
+			GameEventType::CollisionStarted,
+			entityA,
+			entityB,
+			"Collision detected"
+			});
 
+		eventQueue.EnqueueEvent({
+			GameEventType::CollisionStarted,
+			entityB,
+			entityA,
+			"Collision detected"
+			});
+	}
+}
+
+void CollisionSystem::BroadcastTriggerExitEvents(EventQueue& eventQueue, const std::vector<std::pair<entt::entity, entt::entity>>& currentTriggerPairs)
+{
 	for (auto pair : previousTriggerPairs)
 	{
 		if (!ContainsPair(currentTriggerPairs, pair.first, pair.second))
 		{
-			eventQueue.EnqueueEvent({ GameEventType::TriggerExited, pair.first, pair.second, "Trigger exited" });
+			eventQueue.EnqueueEvent({
+				GameEventType::TriggerExited,
+				pair.first,
+				pair.second,
+				"Trigger exited"
+				});
 		}
 	}
-
-	previousTriggerPairs = currentTriggerPairs;
-
-	DeleteBVH(bvhRoot);
 }
 
 bool CollisionSystem::TestSphereSphere(const Sphere& a, const Sphere& b)

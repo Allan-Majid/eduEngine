@@ -11,9 +11,6 @@ enum class GameEventType
 	TriggerEntered,
 	TriggerExited,
 	QuestUpdated,
-	QuestFoodFound,
-	QuestHorseReached,
-	QuestHorseFed
 };
 
 struct GameEvent
@@ -23,3 +20,5 @@ struct GameEvent
 	entt::entity entityB = entt::null;
 	std::string message;
 };
+
+
