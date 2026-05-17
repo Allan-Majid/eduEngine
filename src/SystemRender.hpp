@@ -15,7 +15,8 @@ public:
 		entt::registry& registry,
 		eeng::ForwardRendererPtr renderer,
 		ShapeRendererPtr shapeRenderer,
-		float time
+		float time,
+		bool drawCollisionDebug
 	);
 
 private:
@@ -24,4 +25,5 @@ private:
 		std::shared_ptr<eeng::RenderableMesh> meshPtr,
 		const glm::mat4& worldMatrix
 	);
+	void RenderCollisionDebug(entt::registry& registry, ShapeRendererPtr shapeRenderer);
 };

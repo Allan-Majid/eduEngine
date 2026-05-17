@@ -47,10 +47,7 @@ void Game::update(
 
 }
 
-void Game::render(
-	float time,
-	int windowWidth,
-	int windowHeight)
+void Game::render(float time, int windowWidth, int windowHeight)
 {
 	renderUI();
 	updateRenderMatrices(windowWidth, windowHeight);
@@ -59,9 +56,11 @@ void Game::render(
 	renderScene(time);
 	drawcallCount = forwardRenderer->endPass();
 
-	renderDebugShapes();
-	shapeRenderer->render(matrices.P * matrices.V);
-	shapeRenderer->post_render();
+	if (drawCollisionDebug)
+	{
+		shapeRenderer->render(matrices.P * matrices.V);
+		shapeRenderer->post_render();
+	}
 }
 
 void Game::renderUI()
@@ -221,6 +220,9 @@ void Game::renderCustomDebugUI()
 	{
 		ImGui::Text("Objective: Quest completed");
 	}
+
+	ImGui::Separator();
+	ImGui::Checkbox("Draw Collision Debug", &drawCollisionDebug);
 
 	ImGui::End();
 }
@@ -539,7 +541,7 @@ void Game::updateRenderMatrices(int windowWidth, int windowHeight)
 
 void Game::renderScene(float time)
 {
-	renderSystem.Render(*entity_registry, forwardRenderer, shapeRenderer, time);
+	renderSystem.Render(*entity_registry, forwardRenderer, shapeRenderer, time, drawCollisionDebug);
 
 	forwardRenderer->renderMesh(grassMesh, grassWorldMatrix);
 	grass_aabb = grassMesh->m_model_aabb.post_transform(grassWorldMatrix);

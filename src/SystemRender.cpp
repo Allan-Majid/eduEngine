@@ -3,10 +3,12 @@
 #include "ComponentMesh.hpp"
 #include "ComponentAnimation.hpp"
 #include "glmcommon.hpp"
+#include "ComponentSphereCollider.hpp"
+#include "ComponentAABBCollider.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 
-void RenderSystem::Render(entt::registry& registry, eeng::ForwardRendererPtr renderer, ShapeRendererPtr shapeRenderer, float time)
+void RenderSystem::Render(entt::registry& registry, eeng::ForwardRendererPtr renderer, ShapeRendererPtr shapeRenderer, float time, bool drawCollisionDebug)
 {
 	auto view = registry.view<TransformComponent, MeshComponent>();
 
@@ -32,6 +34,11 @@ void RenderSystem::Render(entt::registry& registry, eeng::ForwardRendererPtr ren
 		{
 			RenderDebugGizmo(shapeRenderer, meshPtr, worldMatrix);
 		}
+	}
+
+	if (drawCollisionDebug)
+	{
+		RenderCollisionDebug(registry, shapeRenderer);
 	}
 }
 
@@ -67,4 +74,42 @@ void RenderSystem::RenderDebugGizmo(ShapeRendererPtr shapeRenderer, std::shared_
 		shapeRenderer->pop_states<ShapeRendering::Color4u>();
 		shapeRenderer->pop_states<ShapeRendering::Color4u>();
 	}
+}
+
+void RenderSystem::RenderCollisionDebug(entt::registry& registry, ShapeRendererPtr shapeRenderer)
+{
+	auto colliderView = registry.view<TransformComponent, AABBColliderComponent>();
+
+	shapeRenderer->push_states(ShapeRendering::Color4u{ 0xFF00FFFF });
+
+	for (auto entity : colliderView)
+	{
+		auto& transform = colliderView.get<TransformComponent>(entity);
+		auto& aabb = colliderView.get<AABBColliderComponent>(entity);
+
+		glm::vec3 center = transform.position + aabb.offset;
+
+		glm::vec3 min = center - aabb.halfExtents;
+		glm::vec3 max = center + aabb.halfExtents;
+
+		shapeRenderer->push_AABB(min, max);
+	}
+
+	shapeRenderer->pop_states<ShapeRendering::Color4u>();
+
+	auto sphereView = registry.view<TransformComponent, SphereColliderComponent>();
+
+	shapeRenderer->push_states(ShapeRendering::Color4u{ 0xFFFF0000 });
+
+	for (auto entity : sphereView)
+	{
+		auto& transform = sphereView.get<TransformComponent>(entity);
+		auto& sphere = sphereView.get<SphereColliderComponent>(entity);
+
+		shapeRenderer->push_states(glm_aux::TS(transform.position + sphere.offset, glm::vec3(1.0f)));
+		shapeRenderer->push_sphere_wireframe(sphere.radius, sphere.radius);
+		shapeRenderer->pop_states<glm::mat4>();
+	}
+
+	shapeRenderer->pop_states<ShapeRendering::Color4u>();
 }

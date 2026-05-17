@@ -64,6 +64,7 @@ private:
 
 	// System for rendering entities with mesh components
 	RenderSystem renderSystem;
+    bool drawCollisionDebug = true;
 
 	// System for updating NPC-controlled entities based on simple AI logic
 	NPCControllerSystem npcControllerSystem;
